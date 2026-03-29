@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impressum — Depalomi.com</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .legal-content {
+      padding: calc(var(--nav-h) + 5rem) clamp(1.5rem, 4vw, 4rem) 6rem;
+      max-width: 720px;
+    }
+    .legal-content h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+    }
+    .legal-content h2 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content p, .legal-content address {
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      line-height: 1.8;
+      font-style: normal;
+    }
+    .legal-content a {
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1px;
+      transition: border-color 0.2s;
+    }
+    .legal-content a:hover {
+      border-color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <nav>
+    <a href="index.html" class="nav-logo">Depalomi<span>.com</span></a>
+    <ul class="nav-links">
+      <li><a href="fotografie.html">Fotografie</a></li>
+      <li><a href="video.html">Video & Animation</a></li>
+      <li><a href="webseiten.html">Webseiten</a></li>
+      <li><a href="automatisierung.html">Automatisierung</a></li>
+      <li><a href="mailto:info@depalomi.com" class="nav-cta">Kontakt</a></li>
+    </ul>
+    <button class="nav-burger" aria-label="Menü" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="legal-content">
+    <h1>Impressum</h1>
+
+    <h2>Angaben gemäß § 5 TMG</h2>
+    <address>
+      Davide De Palomi<br>
+      Von-Stauffenberg Str. 8<br>
+      53604 Bad Honnef<br>
+      Deutschland
+    </address>
+
+    <h2>Kontakt</h2>
+    <p>
+      E-Mail: <a href="mailto:info@depalomi.com">info@depalomi.com</a>
+    </p>
+
+    <h2>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+    <p>
+      Davide De Palomi<br>
+      [Adresse wie oben]
+    </p>
+
+    <h2>Haftungsausschluss</h2>
+    <p>
+      Die Inhalte dieser Website wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte kann jedoch keine Gewähr übernommen werden.
+    </p>
+
+    <h2>Urheberrecht</h2>
+    <p>
+      Die durch den Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors.
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Depalomi.com</div>
+    <ul class="footer-links">
+      <li><a href="fotografie.html">Fotografie</a></li>
+      <li><a href="video.html">Video</a></li>
+      <li><a href="webseiten.html">Web</a></li>
+      <li><a href="automatisierung.html">Automatisierung</a></li>
+      <li><a href="impressum.html">Impressum</a></li>
+    </ul>
+    <span class="footer-copy">&copy; 2025 Davide De Palomi</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

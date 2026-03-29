@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Davide De Palomi — Fotografie · Video · Web · Automatisierung</title>
+  <meta name="description" content="Fotografie, Videoschnitt, Animation, Webentwicklung und n8n-Automatisierungen — alles aus einer Hand." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="has-hero-video">
+
+  <!-- NAVIGATION -->
+  <nav>
+    <a href="index.html" class="nav-logo">Depalomi<span>.com</span></a>
+    <ul class="nav-links">
+      <li><a href="fotografie.html">Fotografie</a></li>
+      <li><a href="video.html">Video & Animation</a></li>
+      <li><a href="webseiten.html">Webseiten</a></li>
+      <li><a href="automatisierung.html">Automatisierung</a></li>
+      <li><a href="mailto:info@depalomi.com" class="nav-cta">Kontakt</a></li>
+    </ul>
+    <button class="nav-burger" aria-label="Menü" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero hero--video">
+    <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="videos/hero-poster.jpg">
+      <source src="videos/hero.mp4" type="video/mp4">
+      <source src="videos/hero.webm" type="video/webm">
+    </video>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-eyebrow">
+      <span class="label hero-label">Davide De Palomi</span>
+    </div>
+    <div class="hero-title">
+      <h1 class="display hero-display">Bild.<br>Bewegung.<br>Code.</h1>
+    </div>
+    <div class="hero-bottom">
+      <p class="body-lg hero-desc hero-desc--light">
+        Visuelles Storytelling, präzise Webentwicklung und smarte Automatisierungen — für Projekte die im Gedächtnis bleiben.
+      </p>
+      <div class="hero-services">
+        <a href="fotografie.html" class="tag tag--light">Fotografie</a>
+        <a href="video.html" class="tag tag--light">Video & Animation</a>
+        <a href="webseiten.html" class="tag tag--light">Webseiten</a>
+        <a href="automatisierung.html" class="tag tag--light">n8n Automatisierung</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee-strip" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item">Fotografie</span>
+      <span class="marquee-item">Videoschnitt</span>
+      <span class="marquee-item">Logo Animation</span>
+      <span class="marquee-item">Webentwicklung</span>
+      <span class="marquee-item">n8n Automatisierung</span>
+      <span class="marquee-item">Portraits</span>
+      <span class="marquee-item">Reels</span>
+      <span class="marquee-item">Workflows</span>
+      <span class="marquee-item">Fotografie</span>
+      <span class="marquee-item">Videoschnitt</span>
+      <span class="marquee-item">Logo Animation</span>
+      <span class="marquee-item">Webentwicklung</span>
+      <span class="marquee-item">n8n Automatisierung</span>
+      <span class="marquee-item">Portraits</span>
+      <span class="marquee-item">Reels</span>
+      <span class="marquee-item">Workflows</span>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-header-left">
+        <p class="label section-label">Leistungen</p>
+        <h2 class="headline">Was ich anbiete</h2>
+      </div>
+      <p class="body-lg section-header-right">
+        Von der ersten Idee bis zum fertigen Ergebnis — kreativ, technisch und strukturiert.
+      </p>
+    </div>
+
+    <div class="services-grid">
+
+      <!-- Fotografie -->
+      <div class="service-card" data-href="fotografie.html">
+        <p class="service-num">01</p>
+        <svg class="service-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="4" y="10" width="32" height="24"/>
+          <circle cx="20" cy="22" r="7"/>
+          <circle cx="20" cy="22" r="3"/>
+          <rect x="14" y="5" width="12" height="5"/>
+          <circle cx="32" cy="15" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <h3 class="service-title">Fotografie</h3>
+        <p class="service-desc">
+          Portraits, Events, Produkte — Momente festgehalten mit Blick fürs Wesentliche. Authentisch, klar, ausdrucksstark.
+        </p>
+        <span class="service-link">
+          Mehr erfahren
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Video & Animation -->
+      <div class="service-card" data-href="video.html">
+        <p class="service-num">02</p>
+        <svg class="service-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="8" width="26" height="24"/>
+          <path d="M28 16l10-6v20l-10-6V16z"/>
+          <path d="M12 18l8 4-8 4V18z" fill="currentColor" stroke="none"/>
+        </svg>
+        <h3 class="service-title">Video & Animation</h3>
+        <p class="service-desc">
+          Videoschnitt, Logo-Animationen, Reels und Corporate-Films. Bewegtbild das begeistert und die Botschaft transportiert.
+        </p>
+        <span class="service-link">
+          Mehr erfahren
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Webseiten -->
+      <div class="service-card" data-href="webseiten.html">
+        <p class="service-num">03</p>
+        <svg class="service-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="4" y="6" width="32" height="28"/>
+          <path d="M4 14h32"/>
+          <circle cx="10" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+          <path d="M12 22h16M12 28h10"/>
+        </svg>
+        <h3 class="service-title">Webseiten</h3>
+        <p class="service-desc">
+          Moderne Websites mit klarem Design und sauberem Code. Performance-optimiert, responsiv und auf dein Business zugeschnitten.
+        </p>
+        <span class="service-link">
+          Mehr erfahren
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Automatisierung -->
+      <div class="service-card" data-href="automatisierung.html">
+        <p class="service-num">04</p>
+        <svg class="service-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="20" r="5"/>
+          <circle cx="32" cy="8" r="5"/>
+          <circle cx="32" cy="32" r="5"/>
+          <path d="M13 20h7M27 10l-7 8M27 30l-7-8"/>
+        </svg>
+        <h3 class="service-title">Automatisierung</h3>
+        <p class="service-desc">
+          Workflows mit n8n die Prozesse automatisieren, Zeit sparen und Fehler eliminieren. Von einfachen Integrationen bis zu komplexen Systemen.
+        </p>
+        <span class="service-link">
+          Mehr erfahren
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <div class="about-strip">
+    <div class="about-text">
+      <h2>Hinter der Kamera und hinter dem Code</h2>
+      <p>
+        Ich bin Davide — Fotograf, Videoeditor und Entwickler aus Deutschland. Meine Arbeit verbindet visuelle Gestaltung mit technischer Präzision.
+      </p>
+      <p>
+        Ob ein stimmungsvolles Portrait, ein dynamischer Werbefilm oder eine Webseite die wirklich funktioniert — ich begleite Projekte von der ersten Idee bis zur finalen Umsetzung.
+      </p>
+      <a href="mailto:info@depalomi.com" class="btn btn-outline" style="margin-top: 1rem;">
+        Kontakt aufnehmen
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 8h10M9 4l4 4-4 4"/>
+        </svg>
+      </a>
+    </div>
+    <div class="about-stats">
+      <div class="stat">
+        <div class="stat-num">4</div>
+        <div class="stat-label">Leistungsbereiche</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Workflow-Möglichkeiten</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">1</div>
+        <div class="stat-label">Ansprechpartner für alles</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-header-left">
+        <p class="label section-label">Vorgehen</p>
+        <h2 class="headline">So arbeite ich</h2>
+      </div>
+    </div>
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="step-num">01</div>
+        <div class="step-title">Briefing</div>
+        <p class="step-desc">Wir sprechen über dein Projekt, deine Ziele und was du brauchst. Kein Formular-Dschungel.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">02</div>
+        <div class="step-title">Konzept</div>
+        <p class="step-desc">Ich erarbeite einen klaren Plan — egal ob Shotlist, Wireframe oder Workflow-Skizze.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">03</div>
+        <div class="step-title">Umsetzung</div>
+        <p class="step-desc">Sauber, pünktlich, mit Blick fürs Detail. Du bleibst im Bild über den Fortschritt.</p>
+      </div>
+      <div class="process-step">
+        <div class="step-num">04</div>
+        <div class="step-title">Übergabe</div>
+        <p class="step-desc">Finales Ergebnis, fertig zum Einsatz. Revisionen inklusive bis du zufrieden bist.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2 class="display">Bereit loszulegen?</h2>
+    <div class="cta-actions">
+      <a href="mailto:info@depalomi.com" class="btn btn-primary">
+        Projekt anfragen
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 8h10M9 4l4 4-4 4"/>
+        </svg>
+      </a>
+      <a href="fotografie.html" class="btn btn-ghost">Arbeiten ansehen</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Depalomi.com</div>
+    <ul class="footer-links">
+      <li><a href="fotografie.html">Fotografie</a></li>
+      <li><a href="video.html">Video</a></li>
+      <li><a href="webseiten.html">Web</a></li>
+      <li><a href="automatisierung.html">Automatisierung</a></li>
+      <li><a href="impressum.html">Impressum</a></li>
+    </ul>
+    <span class="footer-copy">&copy; 2025 Davide De Palomi</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

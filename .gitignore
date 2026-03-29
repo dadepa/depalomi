@@ -1,0 +1,5 @@
+data/
+node_modules/
+public/videos/
+.DS_Store
+*.log

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin — Depalomi.com</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #080808;
+      color: #f0f0f0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+    .box {
+      width: 100%;
+      max-width: 380px;
+      padding: 3rem;
+      border: 1px solid #242424;
+    }
+    .logo {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 3rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      text-transform: uppercase;
+      margin-bottom: .5rem;
+    }
+    .sub {
+      font-size: .875rem;
+      color: #555;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+    label {
+      display: block;
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: .5rem;
+    }
+    input[type="password"] {
+      width: 100%;
+      background: #111;
+      border: 1px solid #242424;
+      color: #f0f0f0;
+      padding: .875rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      font-family: inherit;
+      margin-bottom: 1.5rem;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #555; }
+    button {
+      width: 100%;
+      background: #f0f0f0;
+      color: #080808;
+      border: none;
+      padding: .875rem;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .2s;
+    }
+    button:hover { background: #ccc; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .error {
+      font-size: .8rem;
+      color: #ff6b6b;
+      margin-bottom: 1rem;
+      display: none;
+      padding: .75rem 1rem;
+      border: 1px solid #3a1a1a;
+      background: #1a0a0a;
+    }
+    .error.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">Depalomi.com</div>
+    <h1>Admin</h1>
+    <p class="sub">Bitte mit deinem Passwort anmelden.</p>
+    <div class="error" id="err"></div>
+    <label for="pw">Passwort</label>
+    <input type="password" id="pw" autocomplete="current-password" autofocus placeholder="••••••••"/>
+    <button id="btn" onclick="login()">Anmelden</button>
+  </div>
+
+  <script>
+    // Already logged in? Redirect.
+    fetch('/api/admin/me').then(r => r.json()).then(d => {
+      if (d.authenticated) location.replace('/admin/dashboard');
+    });
+
+    async function login() {
+      const pw  = document.getElementById('pw').value;
+      const err = document.getElementById('err');
+      const btn = document.getElementById('btn');
+      err.classList.remove('show');
+      if (!pw) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Wird geprüft…';
+
+      try {
+        const r = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw }),
+        });
+        const d = await r.json();
+        if (r.ok) {
+          location.replace('/admin/dashboard');
+        } else {
+          err.textContent = d.error || 'Fehler';
+          err.classList.add('show');
+          btn.disabled = false;
+          btn.textContent = 'Anmelden';
+        }
+      } catch {
+        err.textContent = 'Verbindungsfehler';
+        err.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Anmelden';
+      }
+    }
+
+    document.getElementById('pw').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>

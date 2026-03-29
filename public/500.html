@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>500 — Serverfehler · Depalomi.com</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .page-500 {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: calc(var(--nav-h) + 4rem) clamp(1.5rem, 4vw, 4rem) 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .five00-num {
+      font-size: clamp(8rem, 22vw, 18rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      line-height: 0.85;
+      color: var(--surface-2);
+      user-select: none;
+      position: relative;
+    }
+
+    .five00-num::after {
+      content: '500';
+      position: absolute;
+      inset: 0;
+      color: transparent;
+      -webkit-text-stroke: 1px var(--border);
+    }
+
+    .five00-label {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .five00-label::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--amber);
+    }
+
+    .five00-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 3rem;
+      flex-wrap: wrap;
+      padding-top: 4rem;
+    }
+
+    .five00-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      line-height: 0.95;
+      color: var(--navy);
+      margin-bottom: 1.5rem;
+    }
+
+    .five00-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 420px;
+      margin-bottom: 2.5rem;
+    }
+
+    .five00-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .back-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 1rem 2rem;
+      background: var(--navy);
+      color: #fff;
+      border: 1px solid var(--navy);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .back-home:hover {
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 1rem 2rem;
+      background: transparent;
+      color: var(--navy);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .contact-link:hover { border-color: var(--navy); }
+
+    .status-box {
+      border: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      max-width: 340px;
+      background: var(--surface);
+    }
+
+    .status-box-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .status-box-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    @media (max-width: 700px) {
+      .five00-bottom { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">Depalomi<span>.com</span></a>
+    <ul class="nav-links">
+      <li><a href="/fotografie.html">Fotografie</a></li>
+      <li><a href="/video.html">Video & Animation</a></li>
+      <li><a href="/webseiten.html">Webseiten</a></li>
+      <li><a href="/automatisierung.html">Automatisierung</a></li>
+      <li><a href="mailto:info@depalomi.com" class="nav-cta">Kontakt</a></li>
+    </ul>
+    <button class="nav-burger" aria-label="Menü" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="page-500">
+    <div class="five00-num">500</div>
+
+    <div class="five00-bottom">
+      <div>
+        <div class="five00-label">
+          <span class="label">Interner Serverfehler</span>
+        </div>
+        <h1 class="five00-title">Da ist etwas<br>schiefgelaufen.</h1>
+        <p class="five00-desc">
+          Der Server hat einen unerwarteten Fehler gemeldet. Das Problem wurde protokolliert — bitte versuch es in ein paar Minuten erneut.
+        </p>
+        <div class="five00-actions">
+          <a href="/" class="back-home">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13 8H3M7 4l-4 4 4 4"/>
+            </svg>
+            Zur Startseite
+          </a>
+          <a href="javascript:location.reload()" class="contact-link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/>
+              <path d="M10 2.5h3.5V6"/>
+            </svg>
+            Seite neu laden
+          </a>
+        </div>
+      </div>
+
+      <div class="status-box">
+        <div class="status-box-label">Was kann ich tun?</div>
+        <p class="status-box-text">
+          Seite neu laden — oft reicht das aus.<br><br>
+          Wenn der Fehler bleibt, schreib mir kurz an
+          <a href="mailto:info@depalomi.com" style="color:var(--amber);text-decoration:none;border-bottom:1px solid var(--amber)">info@depalomi.com</a>
+          und beschreib was du gemacht hast.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Depalomi.com</div>
+    <ul class="footer-links">
+      <li><a href="/fotografie.html">Fotografie</a></li>
+      <li><a href="/video.html">Video</a></li>
+      <li><a href="/webseiten.html">Web</a></li>
+      <li><a href="/automatisierung.html">Automatisierung</a></li>
+      <li><a href="/impressum.html">Impressum</a></li>
+    </ul>
+    <span class="footer-copy">&copy; 2025 Davide De Palomi</span>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>
