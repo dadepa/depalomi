@@ -2,9 +2,64 @@
 // DEPALOMI.COM — Global Scripts
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadSharedLayout();
+  initSiteChrome();
+  initPageBehaviors();
+});
 
-  // ----- Nav scroll effect -----
+async function loadSharedLayout() {
+  const navMount = document.querySelector('[data-site-nav]');
+  const footerMount = document.querySelector('[data-site-footer]');
+  const sharedBase = getSharedBase();
+
+  const tasks = [];
+
+  if (navMount) {
+    tasks.push(
+      fetch(`${sharedBase}partials/nav.html`)
+        .then(r => {
+          if (!r.ok) throw new Error('Nav konnte nicht geladen werden');
+          return r.text();
+        })
+        .then(html => { navMount.outerHTML = html; })
+    );
+  }
+
+  if (footerMount) {
+    tasks.push(
+      fetch(`${sharedBase}partials/footer.html`)
+        .then(r => {
+          if (!r.ok) throw new Error('Footer konnte nicht geladen werden');
+          return r.text();
+        })
+        .then(html => { footerMount.outerHTML = html; })
+    );
+  }
+
+  try {
+    await Promise.all(tasks);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function getSharedBase() {
+  const scriptSrc = Array.from(document.scripts)
+    .map(script => script.getAttribute('src') || '')
+    .find(src => /script\.js($|\?)/.test(src));
+
+  if (!scriptSrc) return '/';
+
+  if (scriptSrc.startsWith('../public/')) return '../public/';
+  if (scriptSrc.startsWith('/')) return '/';
+
+  const parts = scriptSrc.split('/');
+  parts.pop();
+  return parts.length ? `${parts.join('/')}/` : './';
+}
+
+function initSiteChrome() {
   const nav = document.querySelector('nav');
   if (nav) {
     const onScroll = () => {
@@ -42,14 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ----- Active nav link -----
-  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  const currentPath = window.location.pathname === '/' ? '/index.html' : window.location.pathname;
   document.querySelectorAll('.nav-links a').forEach(link => {
     const href = link.getAttribute('href');
-    if (href === currentPath || (currentPath === '' && href === 'index.html')) {
+    if (href === currentPath) {
       link.classList.add('active');
     }
   });
+}
 
+function initPageBehaviors() {
   // ----- Service cards → subpages -----
   document.querySelectorAll('.service-card[data-href]').forEach(card => {
     card.addEventListener('click', () => {
@@ -68,4 +125,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.1 });
 
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-});
+}

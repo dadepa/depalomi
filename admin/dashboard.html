@@ -189,7 +189,25 @@
       border-bottom: 1px solid var(--border);
       padding: 1.25rem;
       position: relative;
+      cursor: grab;
+      user-select: none;
     }
+    .item-card:active { cursor: grabbing; }
+    .item-card.dragging { opacity: 0.35; }
+    .item-card.drag-over { outline: 2px solid var(--text); outline-offset: -2px; }
+
+    .drag-handle {
+      position: absolute;
+      top: .6rem; right: .6rem;
+      display: grid;
+      grid-template-columns: repeat(2, 4px);
+      gap: 3px;
+      padding: 4px;
+      opacity: 0.3;
+      transition: opacity .2s;
+    }
+    .drag-handle span { display: block; width: 4px; height: 4px; background: var(--text); }
+    .item-card:hover .drag-handle { opacity: 0.7; }
 
     .item-thumb {
       aspect-ratio: 4/3;
@@ -260,6 +278,10 @@
     }
     .list-row:last-child { border-bottom: none; }
     .list-row:hover { background: var(--surface); }
+    .list-row.draggable { cursor: grab; user-select: none; }
+    .list-row.draggable:active { cursor: grabbing; }
+    .list-row.dragging { opacity: 0.35; }
+    .list-row.drag-over { outline: 2px solid var(--text); outline-offset: -2px; }
     .list-row-title {
       font-weight: 600;
       font-size: .9rem;
@@ -270,6 +292,18 @@
       color: var(--muted);
     }
     .list-row-actions { display: flex; gap: .5rem; }
+    .list-row-main { display: flex; align-items: flex-start; gap: .9rem; }
+    .drag-handle-list {
+      display: grid;
+      grid-template-columns: repeat(2, 4px);
+      gap: 3px;
+      padding-top: 2px;
+      opacity: 0.3;
+      flex-shrink: 0;
+      transition: opacity .2s;
+    }
+    .drag-handle-list span { display: block; width: 4px; height: 4px; background: var(--text); }
+    .list-row.draggable:hover .drag-handle-list { opacity: 0.7; }
 
     /* ── Modal ──────────────────────────── */
     .modal-overlay {
@@ -632,20 +666,22 @@
 
   // ── Render: Photos ────────────────────────────────────
   function renderPhotos() {
-    const photos = portfolio.filter(i => i.type === 'photo');
+    const photos = portfolio.filter(i => i.type === 'photo').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const el = document.getElementById('photos-container');
     if (!photos.length) {
       el.innerHTML = `<div class="empty"><h3>Noch keine Fotos</h3>Füge dein erstes Foto hinzu.</div>`;
       return;
     }
-    el.innerHTML = `<div class="items-grid">${photos.map(photoCard).join('')}</div>`;
+    el.innerHTML = `<div class="items-grid" id="photos-grid">${photos.map(photoCard).join('')}</div>`;
+    setupPhotoDrag();
   }
 
   function photoCard(item) {
     const thumb = item.filename
       ? `<img src="/uploads/${item.filename}" alt="${esc(item.title)}" loading="lazy"/>`
       : `<span class="item-thumb-placeholder">Kein Bild</span>`;
-    return `<div class="item-card">
+    return `<div class="item-card" draggable="true" data-id="${item.id}">
+      <div class="drag-handle">${'<span></span>'.repeat(6)}</div>
       <div class="item-thumb">${thumb}</div>
       <div class="item-title">${esc(item.title)}</div>
       <div class="item-meta">${esc(item.category || '—')}</div>
@@ -662,28 +698,137 @@
     </div>`;
   }
 
+  function setupPhotoDrag() {
+    const grid = document.getElementById('photos-grid');
+    if (!grid) return;
+    let dragSrc = null;
+
+    grid.addEventListener('dragstart', e => {
+      const card = e.target.closest('.item-card');
+      if (!card) return;
+      dragSrc = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    grid.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const card = e.target.closest('.item-card');
+      grid.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      if (card && card !== dragSrc) card.classList.add('drag-over');
+    });
+
+    grid.addEventListener('dragleave', e => {
+      const card = e.target.closest('.item-card');
+      if (card) card.classList.remove('drag-over');
+    });
+
+    grid.addEventListener('drop', async e => {
+      e.preventDefault();
+      const target = e.target.closest('.item-card');
+      grid.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      if (!target || target === dragSrc) return;
+
+      // Reorder DOM
+      const cards = [...grid.querySelectorAll('.item-card')];
+      const fromIdx = cards.indexOf(dragSrc);
+      const toIdx   = cards.indexOf(target);
+      if (fromIdx < toIdx) target.after(dragSrc);
+      else target.before(dragSrc);
+
+      // Save new order
+      const ids = [...grid.querySelectorAll('.item-card')].map(c => c.dataset.id);
+      await api('PUT', '/api/portfolio/order', { ids });
+      await loadPortfolio();
+    });
+
+    grid.addEventListener('dragend', () => {
+      grid.querySelectorAll('.dragging, .drag-over').forEach(c => {
+        c.classList.remove('dragging', 'drag-over');
+      });
+      dragSrc = null;
+    });
+  }
+
   // ── Render: Videos ────────────────────────────────────
   function renderVideos() {
-    const videos = portfolio.filter(i => i.type === 'video');
+    const videos = portfolio.filter(i => i.type === 'video').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const el = document.getElementById('videos-container');
     if (!videos.length) {
       el.innerHTML = `<div class="empty"><h3>Noch keine Videos</h3>Füge dein erstes Video hinzu.</div>`;
       return;
     }
-    el.innerHTML = `<div class="items-list">${videos.map(videoRow).join('')}</div>`;
+    el.innerHTML = `<div class="items-list" id="videos-list">${videos.map(videoRow).join('')}</div>`;
+    setupVideoDrag();
   }
 
   function videoRow(item) {
-    return `<div class="list-row">
-      <div>
-        <div class="list-row-title">${esc(item.title)}</div>
-        <div class="list-row-meta">${esc(item.category || '—')} · ${item.published ? '<span style="color:#27ae60">Öffentlich</span>' : '<span style="color:#666">Entwurf</span>'}</div>
+    return `<div class="list-row draggable" draggable="true" data-id="${item.id}">
+      <div class="list-row-main">
+        <div class="drag-handle-list">${'<span></span>'.repeat(6)}</div>
+        <div>
+          <div class="list-row-title">${esc(item.title)}</div>
+          <div class="list-row-meta">${esc(item.category || '—')} · ${item.published ? '<span style="color:#27ae60">Öffentlich</span>' : '<span style="color:#666">Entwurf</span>'}</div>
+        </div>
       </div>
       <div class="list-row-actions">
         <button class="btn" onclick='openEditModal(${JSON.stringify(item)})'>Bearbeiten</button>
         <button class="btn btn-danger" onclick="deleteItem('${item.id}', 'video')">Löschen</button>
       </div>
     </div>`;
+  }
+
+  function setupVideoDrag() {
+    const list = document.getElementById('videos-list');
+    if (!list) return;
+    let dragSrc = null;
+
+    list.addEventListener('dragstart', e => {
+      const row = e.target.closest('.list-row');
+      if (!row) return;
+      dragSrc = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const row = e.target.closest('.list-row');
+      list.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+      if (row && row !== dragSrc) row.classList.add('drag-over');
+    });
+
+    list.addEventListener('dragleave', e => {
+      const row = e.target.closest('.list-row');
+      if (row) row.classList.remove('drag-over');
+    });
+
+    list.addEventListener('drop', async e => {
+      e.preventDefault();
+      const target = e.target.closest('.list-row');
+      list.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+      if (!target || target === dragSrc) return;
+
+      const rows = [...list.querySelectorAll('.list-row')];
+      const fromIdx = rows.indexOf(dragSrc);
+      const toIdx = rows.indexOf(target);
+      if (fromIdx < toIdx) target.after(dragSrc);
+      else target.before(dragSrc);
+
+      const ids = [...list.querySelectorAll('.list-row')].map(row => row.dataset.id);
+      await api('PUT', '/api/portfolio/order', { ids });
+      await loadPortfolio();
+      renderVideos();
+    });
+
+    list.addEventListener('dragend', () => {
+      list.querySelectorAll('.dragging, .drag-over').forEach(r => {
+        r.classList.remove('dragging', 'drag-over');
+      });
+      dragSrc = null;
+    });
   }
 
   // ── Render: Projects ──────────────────────────────────
@@ -815,6 +960,18 @@
         <input class="form-input" id="f-url" value="${esc(item.url || '')}" placeholder="https://…"/>
       </div>
       <div class="form-group">
+        <label class="form-label">Format</label>
+        <select class="form-select" id="f-aspect-ratio">
+          ${[
+            ['auto', 'Auto erkennen'],
+            ['16:9', '16:9 Querformat'],
+            ['9:16', '9:16 Hochformat']
+          ].map(([value, label]) =>
+            `<option value="${value}" ${(item.aspectRatio || 'auto') === value ? 'selected' : ''}>${label}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
         <label class="form-label">Beschreibung</label>
         <textarea class="form-textarea" id="f-desc" placeholder="Kurze Beschreibung…">${esc(item.description || '')}</textarea>
       </div>
@@ -930,12 +1087,13 @@
     const title    = document.getElementById('f-title').value.trim();
     const category = document.getElementById('f-category').value;
     const url      = document.getElementById('f-url').value.trim();
+    const aspectRatio = document.getElementById('f-aspect-ratio').value;
     const desc     = document.getElementById('f-desc').value.trim();
     const published = document.getElementById('f-published').checked;
 
     if (!title || (!editId && !url)) return toast('Titel und URL sind Pflicht', 'error');
 
-    const payload = { title, category, description: desc, published };
+    const payload = { title, category, description: desc, aspectRatio, published };
     if (url) payload.url = url;
 
     const endpoint = editId ? `/api/portfolio/${editId}` : '/api/portfolio';

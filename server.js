@@ -383,7 +383,7 @@ async function handleApi(path_, method, _url, req, res) {
     let data;
     try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
 
-    const { type, title, category, description, url: itemUrl, imageData, published } = data;
+    const { type, title, category, description, url: itemUrl, imageData, published, aspectRatio } = data;
     if (!type || !title) return json(res, 400, { error: 'type und title sind Pflicht' });
 
     const id = generateId();
@@ -394,6 +394,7 @@ async function handleApi(path_, method, _url, req, res) {
       category: String(category || '').slice(0, 50),
       description: String(description || '').slice(0, 1000),
       url: type === 'video' ? String(itemUrl || '').slice(0, 500) : null,
+      aspectRatio: type === 'video' ? normalizeAspectRatio(aspectRatio) : null,
       filename: null,
       published: Boolean(published),
       order: 0,
@@ -435,6 +436,9 @@ async function handleApi(path_, method, _url, req, res) {
     if ('category'    in data) item.category    = String(data.category).slice(0, 50);
     if ('description' in data) item.description = String(data.description).slice(0, 1000);
     if ('url'         in data) item.url         = String(data.url).slice(0, 500);
+    if ('aspectRatio' in data && item.type === 'video') {
+      item.aspectRatio = normalizeAspectRatio(data.aspectRatio);
+    }
     if ('published'   in data) item.published   = Boolean(data.published);
     if ('order'       in data) item.order        = Number(data.order) || 0;
 
@@ -458,6 +462,21 @@ async function handleApi(path_, method, _url, req, res) {
     if (item.filename) {
       try { await unlink(path.join(UPLOADS_DIR, item.filename)); } catch { /* gone */ }
     }
+    return json(res, 200, { ok: true });
+  }
+
+  // PUT /api/portfolio/order  — reorder by id array
+  if (path_ === '/api/portfolio/order' && method === 'PUT') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+    const { ids } = data;
+    if (!Array.isArray(ids)) return json(res, 400, { error: 'ids muss ein Array sein' });
+    const list = await readPortfolio();
+    const map  = new Map(list.map(i => [i.id, i]));
+    const reordered = ids.filter(id => map.has(id)).map((id, idx) => ({ ...map.get(id), order: idx }));
+    const rest = list.filter(i => !ids.includes(i.id));
+    await savePortfolio([...reordered, ...rest]);
     return json(res, 200, { ok: true });
   }
 
@@ -812,4 +831,8 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function normalizeAspectRatio(value) {
+  return ['auto', '16:9', '9:16'].includes(value) ? value : 'auto';
 }
