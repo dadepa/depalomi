@@ -76,6 +76,7 @@ function initSiteChrome() {
   if (burger && navLinks) {
     const closeMenu = () => {
       navLinks.classList.remove('open');
+      document.body.classList.remove('menu-open');
       burger.setAttribute('aria-expanded', 'false');
       burger.querySelectorAll('span').forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
       if (window.scrollY <= 40) nav.classList.remove('scrolled');
@@ -83,6 +84,7 @@ function initSiteChrome() {
 
     burger.addEventListener('click', () => {
       const isOpen = navLinks.classList.toggle('open');
+      document.body.classList.toggle('menu-open', isOpen);
       burger.setAttribute('aria-expanded', isOpen);
       burger.querySelectorAll('span')[0].style.transform = isOpen ? 'rotate(45deg) translate(4px, 4px)' : '';
       burger.querySelectorAll('span')[1].style.opacity = isOpen ? '0' : '1';
