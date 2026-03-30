@@ -1,6 +1,10 @@
-
+data/uploads/
+data/portfolio.json
+data/projects.json
+data/config.json
 public/videos/
 node_modules/
 .DS_Store
 *.log
 draft/
+data/
