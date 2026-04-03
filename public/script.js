@@ -99,13 +99,20 @@ function initSiteChrome() {
   }
 
   // ----- Active nav link -----
-  const currentPath = window.location.pathname === '/' ? '/index.html' : window.location.pathname;
+  const currentPath = normalizeNavPath(window.location.pathname);
   document.querySelectorAll('.nav-links a').forEach(link => {
-    const href = link.getAttribute('href');
+    const href = normalizeNavPath(link.getAttribute('href'));
     if (href === currentPath) {
       link.classList.add('active');
     }
   });
+}
+
+function normalizeNavPath(path) {
+  if (!path || path === '/index.html') return '/';
+  if (path.endsWith('.html')) return `${path.slice(0, -5)}/`;
+  if (path !== '/' && !path.endsWith('/')) return `${path}/`;
+  return path;
 }
 
 function initPageBehaviors() {

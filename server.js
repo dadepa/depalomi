@@ -735,6 +735,14 @@ async function serveFile(filePath, req, res) {
 }
 
 async function serveStatic(requestPath, req, res) {
+  const cleanRoute = await resolveCleanRoute(requestPath);
+  if (cleanRoute.redirectTo) {
+    return redirect(res, cleanRoute.redirectTo);
+  }
+  if (cleanRoute.filePath) {
+    return serveFile(cleanRoute.filePath, req, res);
+  }
+
   let filePath;
 
   if (requestPath.startsWith('/uploads/')) {
@@ -767,6 +775,38 @@ async function serveStatic(requestPath, req, res) {
   }
 
   streamFile(filePath, s.size, req, res);
+}
+
+async function resolveCleanRoute(requestPath) {
+  if (requestPath === '/index.html') {
+    return { redirectTo: '/' };
+  }
+
+  const htmlMatch = requestPath.match(/^\/([a-z0-9-]+)\.html$/i);
+  if (htmlMatch) {
+    const htmlFile = path.join(PUBLIC_DIR, `${htmlMatch[1]}.html`);
+    try {
+      const s = await stat(htmlFile);
+      if (s.isFile()) return { redirectTo: `/${htmlMatch[1]}/` };
+    } catch {
+      return {};
+    }
+  }
+
+  const cleanMatch = requestPath.match(/^\/([a-z0-9-]+)(\/)?$/i);
+  if (!cleanMatch) return {};
+
+  const slug = cleanMatch[1];
+  const htmlFile = path.join(PUBLIC_DIR, `${slug}.html`);
+
+  try {
+    const s = await stat(htmlFile);
+    if (!s.isFile()) return {};
+    if (!cleanMatch[2]) return { redirectTo: `/${slug}/` };
+    return { filePath: htmlFile };
+  } catch {
+    return {};
+  }
 }
 
 function streamFile(filePath, fileSize, req, res) {
