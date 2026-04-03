@@ -12,12 +12,13 @@ import crypto from 'node:crypto';
 
 const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const PORT       = Number(process.env.PORT) || 3000;
+const IS_PROD    = process.env.NODE_ENV === 'production';
 
 // ── Directories ─────────────────────────────────────
 const PUBLIC_DIR  = path.join(__dirname, 'public');
 const ADMIN_DIR   = path.join(__dirname, 'admin');
-const DATA_DIR    = path.join(__dirname, 'data');
-const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
+const DATA_DIR    = process.env.DATA_DIR || (IS_PROD ? '/var/www/depalomi-data' : path.join(__dirname, '.data'));
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
 // ── Data files ───────────────────────────────────────
 const CONFIG_FILE    = path.join(DATA_DIR, 'config.json');
@@ -47,7 +48,6 @@ const PREVIEW_TTL       = 24 * 60 * 60 * 1000; // 24h
 const MAX_ATTEMPTS      = 5;
 const LOCKOUT_MS        = 15 * 60 * 1000;       // 15 min
 const MAX_BODY_BYTES    = 12 * 1024 * 1024;      // 12 MB max request body
-const IS_PROD           = process.env.NODE_ENV === 'production';
 
 // ── Startup: init dirs + config ──────────────────────
 await mkdir(DATA_DIR,    { recursive: true });
