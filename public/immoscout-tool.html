@@ -30,7 +30,52 @@
         <a class="btn btn-navy" href="/admin/">Einloggen</a>
       </div>
 
+      <section class="export-tool capture-tool" id="immoscoutCaptureTool" hidden>
+        <div class="tool-subhead">
+          <div>
+            <p class="label">Browser-Import</p>
+            <h2>Captures sammeln</h2>
+          </div>
+          <a class="btn btn-navy" id="immoscoutBookmarklet" href="#">ImmoScout speichern</a>
+        </div>
+
+        <div class="tool-actions">
+          <button class="btn btn-outline" type="button" id="immoscoutCopyBookmarklet">Bookmarklet kopieren</button>
+          <button class="btn btn-primary" type="button" id="immoscoutExportCaptures">Captures exportieren</button>
+          <button class="btn btn-outline" type="button" id="immoscoutRefreshCaptures">Aktualisieren</button>
+          <button class="btn btn-outline" type="button" id="immoscoutClearCaptures">Leeren</button>
+        </div>
+
+        <div class="manual-capture">
+          <div class="field-group">
+            <label for="immoscoutCapturePaste">Capture JSON</label>
+            <textarea id="immoscoutCapturePaste" rows="4" spellcheck="false"></textarea>
+          </div>
+          <button class="btn btn-outline" type="button" id="immoscoutImportCapture">Capture importieren</button>
+        </div>
+
+        <div class="status-table-wrap capture-table-wrap">
+          <table class="status-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Titel</th>
+                <th>Text</th>
+                <th>Aktualisiert</th>
+              </tr>
+            </thead>
+            <tbody id="immoscoutCaptures"></tbody>
+          </table>
+        </div>
+      </section>
+
       <form class="export-tool" id="immoscoutForm" hidden>
+        <div class="tool-subhead">
+          <div>
+            <p class="label">Server-Abruf</p>
+            <h2>URLs direkt verarbeiten</h2>
+          </div>
+        </div>
         <div class="field-group">
           <label for="immoscoutUrls">Expose-URLs</label>
           <textarea id="immoscoutUrls" name="urls" rows="10" spellcheck="false" placeholder="https://www.immobilienscout24.de/expose/167403944"></textarea>

@@ -74,7 +74,8 @@ npm run dev
 ## Internal Tools
 
 - **ImmoScout Export**: `/immoscout-tool/` accepts ImmoScout expose URLs behind the existing admin login and creates a ZIP with `immoscout-export.xlsx`, one `<Immoscout-ID>.pdf` per accessible listing, and `hinweise.txt`.
-- The export uses local Chrome for page rendering and PDF creation. It detects ImmoScout protection/Captcha pages and leaves missing values empty instead of trying to bypass them.
+- **Browser-Import**: The tool also generates a bookmarklet. Open an ImmoScout expose in a normal browser session, run the bookmarklet, then export the collected captures from `/immoscout-tool/`. This avoids relying on server-side access to ImmoScout pages.
+- The direct server export uses local Chrome for page rendering and PDF creation. It detects ImmoScout protection/Captcha pages and leaves missing values empty instead of trying to bypass them.
 
 ## Hero Video
 

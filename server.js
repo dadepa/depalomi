@@ -9,7 +9,11 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
-import { createImmoscoutExport } from './lib/immoscout-export.js';
+import {
+  createImmoscoutCaptureArchive,
+  createImmoscoutExport,
+  normalizeImmoscoutCapturePayload,
+} from './lib/immoscout-export.js';
 
 const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const PORT       = Number(process.env.PORT) || 3000;
@@ -26,6 +30,7 @@ const IMMOSCOUT_RUNS_DIR = path.join(DATA_DIR, 'immoscout-runs');
 const CONFIG_FILE    = path.join(DATA_DIR, 'config.json');
 const PORTFOLIO_FILE = path.join(DATA_DIR, 'portfolio.json');
 const PROJECTS_FILE  = path.join(DATA_DIR, 'projects.json');
+const IMMOSCOUT_CAPTURES_FILE = path.join(DATA_DIR, 'immoscout-captures.json');
 
 // ── MIME types ───────────────────────────────────────
 const MIME = {
@@ -69,6 +74,11 @@ try {
   console.log(`║  Admin password initialized: ${initialPw.padEnd(12)} ║`);
   console.log(`║  Change it in the admin panel!           ║`);
   console.log(`╚══════════════════════════════════════════╝\n`);
+}
+
+if (!config.immoscoutImportToken) {
+  config.immoscoutImportToken = generateToken();
+  await saveConfig();
 }
 
 // ── Crypto helpers ───────────────────────────────────
@@ -183,6 +193,44 @@ async function saveProjects(list) {
   await writeFile(PROJECTS_FILE, JSON.stringify(list, null, 2), 'utf-8');
 }
 
+async function readImmoscoutCaptures() {
+  try {
+    const list = JSON.parse(await readFile(IMMOSCOUT_CAPTURES_FILE, 'utf-8'));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveImmoscoutCaptures(list) {
+  await writeFile(IMMOSCOUT_CAPTURES_FILE, JSON.stringify(list, null, 2), 'utf-8');
+}
+
+async function upsertImmoscoutCapture(input) {
+  const capture = normalizeImmoscoutCapturePayload(input);
+  const list = await readImmoscoutCaptures();
+  const idx = list.findIndex(item => item.id === capture.id);
+  if (idx >= 0) {
+    capture.createdAt = list[idx].createdAt || capture.createdAt;
+    list[idx] = capture;
+  } else {
+    list.unshift(capture);
+  }
+  await saveImmoscoutCaptures(list.slice(0, 100));
+  return capture;
+}
+
+function summarizeImmoscoutCaptures(list) {
+  return list.map(item => ({
+    id: item.id,
+    url: item.url,
+    title: item.title,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    textLength: String(item.text || '').length,
+  }));
+}
+
 async function readBody(req) {
   let body = '';
   let size = 0;
@@ -240,6 +288,28 @@ function getClientIp(req) {
   return req.socket.remoteAddress || 'unknown';
 }
 
+function setImmoscoutCaptureCors(req, res) {
+  const origin = req.headers.origin || '';
+  if (/^https:\/\/([a-z0-9-]+\.)?(immobilienscout24|immoscout24)\.de$/i.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+}
+
+function isValidImportToken(token) {
+  const expected = String(config.immoscoutImportToken || '');
+  const value = String(token || '');
+  if (!expected || value.length !== expected.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 // ── Validate slug ─────────────────────────────────────
 function isValidSlug(s) {
   return typeof s === 'string' && /^[a-z0-9-]{2,60}$/.test(s);
@@ -266,6 +336,15 @@ const server = http.createServer(async (req, res) => {
     const url  = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     const path_ = url.pathname;
     const method = req.method.toUpperCase();
+
+    if (path_ === '/api/immoscout/capture') {
+      setImmoscoutCaptureCors(req, res);
+      if (method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+    }
 
     // ── Admin login page ──────────────────────────────
     if (path_ === '/admin' || path_ === '/admin/') {
@@ -350,6 +429,70 @@ async function handleApi(path_, method, _url, req, res) {
   // GET /api/admin/me (check auth status)
   if (path_ === '/api/admin/me' && method === 'GET') {
     return json(res, 200, { authenticated: isAdmin(req) });
+  }
+
+  // POST /api/immoscout/capture (public token — called from bookmarklet)
+  if (path_ === '/api/immoscout/capture' && method === 'POST') {
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+    const token = _url.searchParams.get('token') || data.token || data.captureToken;
+    if (!isValidImportToken(token)) return json(res, 401, { error: 'Ungültiger Import-Token' });
+
+    try {
+      const capture = await upsertImmoscoutCapture(data);
+      return json(res, 200, { ok: true, id: capture.id });
+    } catch (err) {
+      return json(res, err.status || 400, { error: err.message || 'Capture konnte nicht gespeichert werden' });
+    }
+  }
+
+  // GET /api/immoscout/captures (admin only)
+  if (path_ === '/api/immoscout/captures' && method === 'GET') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    const captures = await readImmoscoutCaptures();
+    return json(res, 200, {
+      token: config.immoscoutImportToken,
+      captures: summarizeImmoscoutCaptures(captures),
+    });
+  }
+
+  // POST /api/immoscout/captures/import (admin only — manual paste fallback)
+  if (path_ === '/api/immoscout/captures/import' && method === 'POST') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+
+    try {
+      const capture = await upsertImmoscoutCapture(data);
+      return json(res, 200, { ok: true, capture: summarizeImmoscoutCaptures([capture])[0] });
+    } catch (err) {
+      return json(res, err.status || 400, { error: err.message || 'Capture konnte nicht importiert werden' });
+    }
+  }
+
+  // DELETE /api/immoscout/captures (admin only)
+  if (path_ === '/api/immoscout/captures' && method === 'DELETE') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    await saveImmoscoutCaptures([]);
+    return json(res, 200, { ok: true });
+  }
+
+  // POST /api/immoscout/captures/export (admin only)
+  if (path_ === '/api/immoscout/captures/export' && method === 'POST') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    let data = {};
+    try { data = await readJson(req); } catch { /* body is optional */ }
+
+    try {
+      const captures = await readImmoscoutCaptures();
+      const ids = Array.isArray(data.ids) ? data.ids.map(String) : [];
+      const selected = ids.length ? captures.filter(item => ids.includes(item.id)) : captures;
+      const result = await createImmoscoutCaptureArchive({ captures: selected, runsDir: IMMOSCOUT_RUNS_DIR });
+      return json(res, 200, { ok: true, ...result });
+    } catch (err) {
+      console.error('[immoscout capture export]', err);
+      return json(res, err.status || 500, { error: err.message || 'Capture-Export fehlgeschlagen' });
+    }
   }
 
   // POST /api/immoscout/export (admin only)

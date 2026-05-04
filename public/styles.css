@@ -1060,6 +1060,25 @@ footer {
   padding: 2rem;
 }
 
+.capture-tool {
+  margin-bottom: 1.5rem;
+}
+
+.tool-subhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tool-subhead h2 {
+  margin-top: 0.35rem;
+  font-size: 1.4rem;
+  color: var(--navy);
+  line-height: 1.1;
+}
+
 .field-group {
   display: flex;
   flex-direction: column;
@@ -1098,9 +1117,29 @@ footer {
   margin-top: 1.5rem;
 }
 
-.tool-actions .btn:disabled {
+.tool-actions .btn:disabled,
+.manual-capture .btn:disabled {
   opacity: 0.55;
   cursor: wait;
+}
+
+.manual-capture {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.manual-capture textarea {
+  min-height: 96px;
+}
+
+.capture-table-wrap {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
 }
 
 .export-status {
@@ -1202,16 +1241,24 @@ footer {
   }
 
   .tool-auth,
-  .export-status-head {
+  .export-status-head,
+  .tool-subhead,
+  .manual-capture {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .manual-capture {
+    display: flex;
   }
 
   .export-tool {
     padding: 1.25rem;
   }
 
-  .tool-actions .btn {
+  .tool-actions .btn,
+  .manual-capture .btn,
+  .tool-subhead .btn {
     width: 100%;
     justify-content: center;
   }
