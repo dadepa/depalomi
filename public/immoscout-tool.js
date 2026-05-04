@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const capturesBody = document.getElementById('immoscoutCaptures');
   const textarea = document.getElementById('immoscoutUrls');
   const submit = document.getElementById('immoscoutSubmit');
+  const serverExport = document.getElementById('immoscoutServerExport');
   const sample = document.getElementById('immoscoutSample');
   const statusBox = document.getElementById('immoscoutStatus');
   const statusTitle = document.getElementById('immoscoutStatusTitle');
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const downloadLink = document.getElementById('immoscoutDownload');
 
   const sampleUrl = 'https://www.immobilienscout24.de/expose/167403944?referrer=HYBRID_VIEW_LISTING&searchId=761baa5c-d17b-3d16-89d8-384c3e0620ba&searchType=district&fairPrice=FAIR_OFFER#/';
+  const queueKey = 'dpImmoscoutUrlQueue';
   let bookmarklet = '';
 
   checkAuth();
@@ -106,6 +108,18 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
 
+    const urls = parseUrls(textarea.value);
+    if (!urls.length) {
+      showStatus('Bitte mindestens eine ImmoScout-URL einfügen.', []);
+      return;
+    }
+
+    saveQueue({ urls, index: 0, startedAt: new Date().toISOString() });
+    showStatus(`Öffne URL 1 von ${urls.length} ...`, []);
+    window.location.href = urls[0];
+  });
+
+  serverExport.addEventListener('click', async () => {
     const text = textarea.value.trim();
     if (!text) {
       showStatus('Bitte mindestens eine URL einfügen.', []);
@@ -146,7 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
       form.hidden = !authenticated;
       captureTool.hidden = !authenticated;
       authBox.hidden = authenticated;
-      if (authenticated) await loadCaptures();
+      if (authenticated) {
+        await loadCaptures();
+        resumeQueueIfNeeded();
+      }
     } catch {
       form.hidden = true;
       captureTool.hidden = true;
@@ -170,8 +187,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createBookmarklet(token) {
     const endpoint = `${window.location.origin}/api/immoscout/capture`;
-    const code = `(async()=>{const p={url:location.href,title:document.title,text:document.body?document.body.innerText:""};const b=JSON.stringify(p);try{const r=await fetch(${JSON.stringify(endpoint)}+"?token="+${JSON.stringify(token)},{method:"POST",mode:"cors",headers:{"Content-Type":"application/json"},body:b});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));alert("ImmoScout importiert: "+(d.id||"OK"))}catch(e){p.captureToken=${JSON.stringify(token)};const f=JSON.stringify(p);try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde kopiert; im Tool einfügen.")}catch(_){prompt("Capture kopieren und im Tool einfügen:",f)}}})()`;
+    const returnUrl = `${window.location.origin}/immoscout-tool/?captureReturn=1`;
+    const code = `(async()=>{const p={url:location.href,title:document.title,text:document.body?document.body.innerText:""};const b=JSON.stringify(p);try{const r=await fetch(${JSON.stringify(endpoint)}+"?token="+${JSON.stringify(token)},{method:"POST",mode:"cors",headers:{"Content-Type":"application/json"},body:b});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));location.href=${JSON.stringify(returnUrl)}+"&captured="+encodeURIComponent(d.id||"")}catch(e){p.captureToken=${JSON.stringify(token)};const f=JSON.stringify(p);try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde kopiert; im Tool einfügen.")}catch(_){prompt("Capture kopieren und im Tool einfügen:",f)}location.href=${JSON.stringify(returnUrl)}+"&manual=1"}})()`;
     return `javascript:${code}`;
+  }
+
+  function resumeQueueIfNeeded() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('captureReturn')) return;
+
+    const queue = readQueue();
+    const captured = params.get('captured');
+    const manual = params.get('manual');
+    const cleanUrl = `${window.location.origin}/immoscout-tool/`;
+    history.replaceState(null, '', cleanUrl);
+
+    if (!queue || !Array.isArray(queue.urls) || !queue.urls.length) {
+      setStatusTitle(captured ? `Capture ${captured} gespeichert` : 'Zurück im Tool');
+      loadCaptures();
+      return;
+    }
+
+    if (captured) {
+      queue.index = Math.min((Number(queue.index) || 0) + 1, queue.urls.length);
+      saveQueue(queue);
+    }
+
+    if (manual) {
+      setStatusTitle('Capture wurde kopiert');
+      return;
+    }
+
+    if (queue.index >= queue.urls.length) {
+      clearQueue();
+      loadCaptures();
+      showStatus(`Alle ${queue.urls.length} URLs gesammelt`, []);
+      return;
+    }
+
+    const nextIndex = Number(queue.index) || 0;
+    showStatus(`Öffne URL ${nextIndex + 1} von ${queue.urls.length} ...`, []);
+    setTimeout(() => {
+      window.location.href = queue.urls[nextIndex];
+    }, 900);
+  }
+
+  function parseUrls(value) {
+    const seen = new Set();
+    return (String(value).match(/https?:\/\/[^\s<>"']+/gi) || [])
+      .map(url => url.replace(/[),.;]+$/g, ''))
+      .filter(url => {
+        try {
+          const parsed = new URL(url);
+          const ok = /(^|\.)immobilienscout24\.de$/i.test(parsed.hostname) &&
+            /\/expose\/\d{6,14}/i.test(parsed.pathname);
+          if (!ok || seen.has(parsed.href)) return false;
+          seen.add(parsed.href);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+  }
+
+  function readQueue() {
+    try {
+      return JSON.parse(localStorage.getItem(queueKey) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function saveQueue(queue) {
+    localStorage.setItem(queueKey, JSON.stringify(queue));
+  }
+
+  function clearQueue() {
+    localStorage.removeItem(queueKey);
   }
 
   function renderCaptures(items) {
@@ -200,9 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setUrlBusy(isBusy) {
     submit.disabled = isBusy;
+    serverExport.disabled = isBusy;
     sample.disabled = isBusy;
     textarea.disabled = isBusy;
-    submit.textContent = isBusy ? 'Export läuft ...' : 'Export erstellen';
+    submit.textContent = isBusy ? 'Lauf startet ...' : 'Automatisch sammeln';
   }
 
   function setCaptureBusy(isBusy) {
