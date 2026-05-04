@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sampleUrl = 'https://www.immobilienscout24.de/expose/167403944?referrer=HYBRID_VIEW_LISTING&searchId=761baa5c-d17b-3d16-89d8-384c3e0620ba&searchType=district&fairPrice=FAIR_OFFER#/';
   const queueKey = 'dpImmoscoutUrlQueue';
+  const captureWindowName = 'dp-immoscout-capture';
   let bookmarklet = '';
 
   checkAuth();
@@ -115,8 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     saveQueue({ urls, index: 0, startedAt: new Date().toISOString() });
-    showStatus(`Öffne URL 1 von ${urls.length} ...`, []);
-    window.location.href = urls[0];
+    const captureWindow = window.open(urls[0], captureWindowName);
+    if (captureWindow) {
+      captureWindow.focus();
+      showStatus(`URL 1 von ${urls.length} wurde in einem zweiten Tab geöffnet.`, []);
+    } else {
+      showStatus('Pop-up blockiert. Bitte Pop-ups für diese Seite erlauben und erneut starten.', []);
+    }
   });
 
   serverExport.addEventListener('click', async () => {
