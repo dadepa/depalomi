@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImmoScout Export — Depalomi.com</title>
+  <meta name="description" content="Internes ImmoScout Export-Tool für PDFs und Excel-Listen." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <div data-site-nav></div>
+
+  <main class="tool-page">
+    <section class="tool-shell">
+      <div class="tool-heading">
+        <p class="label">Internes Tool</p>
+        <h1>ImmoScout Export</h1>
+        <p>PDFs und Excel-Datei aus Expose-URLs.</p>
+      </div>
+
+      <div class="tool-auth" id="immoscoutAuth" hidden>
+        <div>
+          <strong>Admin-Login erforderlich</strong>
+          <span>Dieses Tool ist gegen öffentliche Nutzung geschützt.</span>
+        </div>
+        <a class="btn btn-navy" href="/admin/">Einloggen</a>
+      </div>
+
+      <form class="export-tool" id="immoscoutForm" hidden>
+        <div class="field-group">
+          <label for="immoscoutUrls">Expose-URLs</label>
+          <textarea id="immoscoutUrls" name="urls" rows="10" spellcheck="false" placeholder="https://www.immobilienscout24.de/expose/167403944"></textarea>
+        </div>
+
+        <div class="tool-actions">
+          <button class="btn btn-primary" type="submit" id="immoscoutSubmit">
+            Export erstellen
+          </button>
+          <button class="btn btn-outline" type="button" id="immoscoutSample">
+            Beispiel einfügen
+          </button>
+        </div>
+      </form>
+
+      <section class="export-status" id="immoscoutStatus" aria-live="polite" hidden>
+        <div class="export-status-head">
+          <div>
+            <p class="label">Status</p>
+            <h2 id="immoscoutStatusTitle">Bereit</h2>
+          </div>
+          <a class="btn btn-navy" id="immoscoutDownload" href="#" hidden>ZIP herunterladen</a>
+        </div>
+        <div class="status-table-wrap">
+          <table class="status-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>PDF</th>
+                <th>Daten</th>
+                <th>Meldung</th>
+              </tr>
+            </thead>
+            <tbody id="immoscoutResults"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div data-site-footer></div>
+
+  <script src="/script.js"></script>
+  <script src="/immoscout-tool.js"></script>
+</body>
+</html>

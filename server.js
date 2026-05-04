@@ -9,6 +9,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { createImmoscoutExport } from './lib/immoscout-export.js';
 
 const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const PORT       = Number(process.env.PORT) || 3000;
@@ -19,6 +20,7 @@ const PUBLIC_DIR  = path.join(__dirname, 'public');
 const ADMIN_DIR   = path.join(__dirname, 'admin');
 const DATA_DIR    = process.env.DATA_DIR || (IS_PROD ? '/var/www/depalomi-data' : path.join(__dirname, '.data'));
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const IMMOSCOUT_RUNS_DIR = path.join(DATA_DIR, 'immoscout-runs');
 
 // ── Data files ───────────────────────────────────────
 const CONFIG_FILE    = path.join(DATA_DIR, 'config.json');
@@ -35,6 +37,8 @@ const MIME = {
   '.png':  'image/png',  '.webp': 'image/webp',
   '.gif':  'image/gif',  '.svg':  'image/svg+xml',
   '.mp4':  'video/mp4',  '.txt':  'text/plain; charset=utf-8',
+  '.pdf':  'application/pdf', '.zip': 'application/zip',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   '.ico':  'image/x-icon',
 };
 
@@ -52,6 +56,7 @@ const MAX_BODY_BYTES    = 12 * 1024 * 1024;      // 12 MB max request body
 // ── Startup: init dirs + config ──────────────────────
 await mkdir(DATA_DIR,    { recursive: true });
 await mkdir(UPLOADS_DIR, { recursive: true });
+await mkdir(IMMOSCOUT_RUNS_DIR, { recursive: true });
 
 let config;
 try {
@@ -345,6 +350,45 @@ async function handleApi(path_, method, _url, req, res) {
   // GET /api/admin/me (check auth status)
   if (path_ === '/api/admin/me' && method === 'GET') {
     return json(res, 200, { authenticated: isAdmin(req) });
+  }
+
+  // POST /api/immoscout/export (admin only)
+  if (path_ === '/api/immoscout/export' && method === 'POST') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+
+    try {
+      const result = await createImmoscoutExport({ input: data, runsDir: IMMOSCOUT_RUNS_DIR });
+      return json(res, 200, { ok: true, ...result });
+    } catch (err) {
+      console.error('[immoscout export]', err);
+      return json(res, err.status || 500, { error: err.message || 'Export fehlgeschlagen' });
+    }
+  }
+
+  // GET /api/immoscout/export/:runId/download (admin only)
+  const immoscoutDownload = path_.match(/^\/api\/immoscout\/export\/([a-z0-9]+)\/download$/);
+  if (immoscoutDownload && method === 'GET') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    const runId = immoscoutDownload[1];
+    const zipPath = path.resolve(IMMOSCOUT_RUNS_DIR, runId, 'immoscout-export.zip');
+    if (!zipPath.startsWith(path.resolve(IMMOSCOUT_RUNS_DIR) + path.sep)) {
+      return json(res, 404, { error: 'Nicht gefunden' });
+    }
+
+    let s;
+    try { s = await stat(zipPath); } catch { return json(res, 404, { error: 'Nicht gefunden' }); }
+
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-Length': s.size,
+      'Content-Disposition': `attachment; filename="immoscout-export-${runId}.zip"`,
+      'Cache-Control': 'no-store',
+    });
+    createReadStream(zipPath).pipe(res);
+    return;
   }
 
   // POST /api/admin/password (change password)

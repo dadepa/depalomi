@@ -13,6 +13,8 @@ Personal website and CMS for Davide De Palomi — photographer, video editor, we
 
 ```
 ├── server.js           # HTTP server — API + static file serving
+├── lib/                # Server-side helpers
+│   └── immoscout-export.js
 ├── package.json
 ├── public/             # Public website
 │   ├── index.html      # Homepage with video hero
@@ -20,6 +22,8 @@ Personal website and CMS for Davide De Palomi — photographer, video editor, we
 │   ├── video.html
 │   ├── webseiten.html
 │   ├── automatisierung.html
+│   ├── immoscout-tool.html
+│   ├── immoscout-tool.js
 │   ├── impressum.html
 │   ├── 404.html
 │   ├── 500.html
@@ -55,6 +59,10 @@ npm run dev
 |----------|---------|-------------|
 | `PORT` | `3000` | HTTP port |
 | `NODE_ENV` | — | Set to `production` to enable Secure cookie flag |
+| `CHROME_PATH` | auto-detect | Chrome/Chromium executable for ImmoScout PDF export |
+| `IMMOSCOUT_CHROME_PROFILE_DIR` | temp profile | Optional Chrome profile dir, e.g. when an authenticated browser profile is needed |
+| `OPENAI_API_KEY` | — | Optional: enables GPT-assisted field extraction when real listing text is available |
+| `OPENAI_MODEL` | `gpt-4.1-mini` | Optional model override for GPT-assisted extraction |
 
 ## CMS Features
 
@@ -62,6 +70,11 @@ npm run dev
 - **Video**: Add videos by URL (YouTube, Vimeo, direct link)
 - **Kunden-Previews**: Password-protected client preview pages — embed any staging URL in an iframe
 - **Settings**: Change admin password
+
+## Internal Tools
+
+- **ImmoScout Export**: `/immoscout-tool/` accepts ImmoScout expose URLs behind the existing admin login and creates a ZIP with `immoscout-export.xlsx`, one `<Immoscout-ID>.pdf` per accessible listing, and `hinweise.txt`.
+- The export uses local Chrome for page rendering and PDF creation. It detects ImmoScout protection/Captcha pages and leaves missing values empty instead of trying to bypass them.
 
 ## Hero Video
 
