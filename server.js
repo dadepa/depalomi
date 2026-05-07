@@ -231,6 +231,25 @@ function summarizeImmoscoutCaptures(list) {
   }));
 }
 
+function createImmoscoutCaptureSource(item) {
+  const lines = [
+    `URL: ${item.url || ''}`,
+    item.title ? `Titel: ${item.title}` : '',
+    item.printUrl ? `Druckversion: ${item.printUrl}` : '',
+    item.createdAt ? `Erfasst: ${item.createdAt}` : '',
+    item.updatedAt ? `Aktualisiert: ${item.updatedAt}` : '',
+    '',
+    'Seitentext',
+    String(item.text || ''),
+  ];
+
+  if (item.printText) {
+    lines.push('', 'Druckversion-Text', String(item.printText || ''));
+  }
+
+  return lines.filter(line => line !== null && line !== undefined).join('\n');
+}
+
 async function readBody(req) {
   let body = '';
   let size = 0;
@@ -453,6 +472,20 @@ async function handleApi(path_, method, _url, req, res) {
     return json(res, 200, {
       token: config.immoscoutImportToken,
       captures: summarizeImmoscoutCaptures(captures),
+    });
+  }
+
+  // GET /api/immoscout/captures/:id/source (admin only)
+  const immoscoutCaptureSource = path_.match(/^\/api\/immoscout\/captures\/(\d{6,14})\/source$/);
+  if (immoscoutCaptureSource && method === 'GET') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    const captures = await readImmoscoutCaptures();
+    const id = immoscoutCaptureSource[1];
+    const capture = captures.find(item => item.id === id);
+    if (!capture) return json(res, 404, { error: 'Capture nicht gefunden' });
+    return json(res, 200, {
+      id,
+      sourceText: createImmoscoutCaptureSource(capture),
     });
   }
 

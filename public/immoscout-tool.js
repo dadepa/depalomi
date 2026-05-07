@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const capturePaste = document.getElementById('immoscoutCapturePaste');
   const importCapture = document.getElementById('immoscoutImportCapture');
   const capturesBody = document.getElementById('immoscoutCaptures');
+  const sourcePreview = document.getElementById('immoscoutSourcePreview');
+  const sourceTitle = document.getElementById('immoscoutSourceTitle');
+  const sourceText = document.getElementById('immoscoutSourceText');
+  const copySource = document.getElementById('immoscoutCopySource');
+  const closeSource = document.getElementById('immoscoutCloseSource');
   const statusBox = document.getElementById('immoscoutStatus');
   const statusTitle = document.getElementById('immoscoutStatusTitle');
   const resultsBody = document.getElementById('immoscoutResults');
@@ -65,6 +70,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  capturesBody.addEventListener('click', event => {
+    const button = event.target.closest('[data-source-id]');
+    if (!button) return;
+    showCaptureSource(button.dataset.sourceId);
+  });
+
+  copySource.addEventListener('click', async () => {
+    if (!sourceText.value) return;
+    try {
+      await navigator.clipboard.writeText(sourceText.value);
+      setStatusTitle('Quelltext kopiert');
+    } catch {
+      setStatusTitle('Quelltext kann im Textfeld kopiert werden');
+    }
+  });
+
+  closeSource.addEventListener('click', () => {
+    sourcePreview.hidden = true;
+    sourceText.value = '';
+  });
+
   exportCaptures.addEventListener('click', async () => {
     setCaptureBusy(true);
     showStatus('Excel-Export läuft ...', []);
@@ -116,8 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
       bookmarklet = createBookmarklet(data.token);
       bookmarkletLink.href = bookmarklet;
       renderCaptures(data.captures || []);
+      if (!(data.captures || []).length) {
+        sourcePreview.hidden = true;
+        sourceText.value = '';
+      }
     } catch (err) {
       renderCaptures([]);
+      sourcePreview.hidden = true;
+      sourceText.value = '';
       setStatusTitle(err.message || 'Captures konnten nicht geladen werden');
     }
   }
@@ -179,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!items.length) {
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="4">Keine Captures vorhanden.</td>';
+      tr.innerHTML = '<td colspan="5">Keine Captures vorhanden.</td>';
       capturesBody.appendChild(tr);
       return;
     }
@@ -191,8 +223,28 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${escapeHtml(item.title || '')}</td>
         <td>${formatTextLength((Number(item.textLength) || 0) + (Number(item.printTextLength) || 0))}</td>
         <td>${formatDate(item.updatedAt || item.createdAt)}</td>
+        <td><button class="btn btn-outline source-btn" type="button" data-source-id="${escapeHtml(item.id || '')}">Quelltext</button></td>
       `;
       capturesBody.appendChild(tr);
+    }
+  }
+
+  async function showCaptureSource(id) {
+    if (!id) return;
+    sourcePreview.hidden = false;
+    sourceTitle.textContent = `Capture ${id}`;
+    sourceText.value = 'Quelltext wird geladen ...';
+
+    try {
+      const response = await fetch(`/api/immoscout/captures/${encodeURIComponent(id)}/source`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Quelltext konnte nicht geladen werden');
+      sourceTitle.textContent = `Capture ${data.id || id}`;
+      sourceText.value = data.sourceText || '';
+      sourceText.focus();
+    } catch (err) {
+      sourceText.value = '';
+      setStatusTitle(err.message || 'Quelltext konnte nicht geladen werden');
     }
   }
 

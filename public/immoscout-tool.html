@@ -62,11 +62,26 @@
                 <th>Titel</th>
                 <th>Text</th>
                 <th>Aktualisiert</th>
+                <th>Quelltext</th>
               </tr>
             </thead>
             <tbody id="immoscoutCaptures"></tbody>
           </table>
         </div>
+
+        <section class="source-preview" id="immoscoutSourcePreview" hidden>
+          <div class="source-preview-head">
+            <div>
+              <p class="label">Quelltext</p>
+              <h3 id="immoscoutSourceTitle">Capture</h3>
+            </div>
+            <div class="source-preview-actions">
+              <button class="btn btn-outline" type="button" id="immoscoutCopySource">Kopieren</button>
+              <button class="btn btn-outline" type="button" id="immoscoutCloseSource">Schließen</button>
+            </div>
+          </div>
+          <textarea id="immoscoutSourceText" readonly spellcheck="false"></textarea>
+        </section>
       </section>
 
       <section class="export-status" id="immoscoutStatus" aria-live="polite" hidden>
