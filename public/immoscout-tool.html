@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ImmoScout Export — Depalomi.com</title>
-  <meta name="description" content="Internes ImmoScout Export-Tool für PDFs und Excel-Listen." />
+  <meta name="description" content="Internes ImmoScout Browser-Import-Tool für Excel-Listen." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -19,7 +19,7 @@
       <div class="tool-heading">
         <p class="label">Internes Tool</p>
         <h1>ImmoScout Export</h1>
-        <p>PDFs und Excel-Datei aus Expose-URLs.</p>
+        <p>Excel-Datei aus Browser-Captures.</p>
       </div>
 
       <div class="tool-auth" id="immoscoutAuth" hidden>
@@ -69,45 +69,19 @@
         </div>
       </section>
 
-      <form class="export-tool" id="immoscoutForm" hidden>
-        <div class="tool-subhead">
-          <div>
-            <p class="label">URL-Lauf</p>
-            <h2>URLs automatisch sammeln</h2>
-          </div>
-        </div>
-        <div class="field-group">
-          <label for="immoscoutUrls">Expose-URLs</label>
-          <textarea id="immoscoutUrls" name="urls" rows="10" spellcheck="false" placeholder="https://www.immobilienscout24.de/expose/167403944"></textarea>
-        </div>
-
-        <div class="tool-actions">
-          <button class="btn btn-primary" type="submit" id="immoscoutSubmit">
-            Automatisch sammeln
-          </button>
-          <button class="btn btn-outline" type="button" id="immoscoutServerExport">
-            Server-Export
-          </button>
-          <button class="btn btn-outline" type="button" id="immoscoutSample">
-            Beispiel einfügen
-          </button>
-        </div>
-      </form>
-
       <section class="export-status" id="immoscoutStatus" aria-live="polite" hidden>
         <div class="export-status-head">
           <div>
             <p class="label">Status</p>
             <h2 id="immoscoutStatusTitle">Bereit</h2>
           </div>
-          <a class="btn btn-navy" id="immoscoutDownload" href="#" hidden>ZIP herunterladen</a>
+          <a class="btn btn-navy" id="immoscoutDownload" href="#" hidden>Excel herunterladen</a>
         </div>
         <div class="status-table-wrap">
           <table class="status-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>PDF</th>
                 <th>Daten</th>
                 <th>Meldung</th>
               </tr>

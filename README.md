@@ -59,8 +59,6 @@ npm run dev
 |----------|---------|-------------|
 | `PORT` | `3000` | HTTP port |
 | `NODE_ENV` | — | Set to `production` to enable Secure cookie flag |
-| `CHROME_PATH` | auto-detect | Chrome/Chromium executable for ImmoScout PDF export |
-| `IMMOSCOUT_CHROME_PROFILE_DIR` | temp profile | Optional Chrome profile dir, e.g. when an authenticated browser profile is needed |
 | `OPENAI_API_KEY` | — | Optional: enables GPT-assisted field extraction when real listing text is available |
 | `OPENAI_MODEL` | `gpt-4.1-mini` | Optional model override for GPT-assisted extraction |
 
@@ -73,9 +71,8 @@ npm run dev
 
 ## Internal Tools
 
-- **ImmoScout Export**: `/immoscout-tool/` accepts ImmoScout expose URLs behind the existing admin login and creates a ZIP with `immoscout-export.xlsx`, one `<Immoscout-ID>.pdf` per accessible listing, and `hinweise.txt`.
-- **Browser-Import**: The tool also generates a bookmarklet. Save it once, paste ImmoScout expose URLs into `/immoscout-tool/`, start the automatic URL run, then run the bookmarklet on each opened expose. The tool tab stays open while ImmoScout runs in a second tab.
-- The direct server export uses local Chrome for page rendering and PDF creation. It detects ImmoScout protection/Captcha pages and leaves missing values empty instead of trying to bypass them.
+- **ImmoScout Browser-Import**: `/immoscout-tool/` generates a bookmarklet behind the existing admin login. Run the bookmarklet on an ImmoScout expose to save a browser capture, then export all captures directly as `immoscout-export.xlsx`.
+- The export leaves missing values empty when they are not present in the captured text.
 
 ## Hero Video
 

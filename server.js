@@ -10,8 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import {
-  createImmoscoutCaptureArchive,
-  createImmoscoutExport,
+  createImmoscoutCaptureExcel,
   normalizeImmoscoutCapturePayload,
 } from './lib/immoscout-export.js';
 
@@ -488,27 +487,11 @@ async function handleApi(path_, method, _url, req, res) {
       const captures = await readImmoscoutCaptures();
       const ids = Array.isArray(data.ids) ? data.ids.map(String) : [];
       const selected = ids.length ? captures.filter(item => ids.includes(item.id)) : captures;
-      const result = await createImmoscoutCaptureArchive({ captures: selected, runsDir: IMMOSCOUT_RUNS_DIR });
+      const result = await createImmoscoutCaptureExcel({ captures: selected, runsDir: IMMOSCOUT_RUNS_DIR });
       return json(res, 200, { ok: true, ...result });
     } catch (err) {
       console.error('[immoscout capture export]', err);
       return json(res, err.status || 500, { error: err.message || 'Capture-Export fehlgeschlagen' });
-    }
-  }
-
-  // POST /api/immoscout/export (admin only)
-  if (path_ === '/api/immoscout/export' && method === 'POST') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
-
-    let data;
-    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
-
-    try {
-      const result = await createImmoscoutExport({ input: data, runsDir: IMMOSCOUT_RUNS_DIR });
-      return json(res, 200, { ok: true, ...result });
-    } catch (err) {
-      console.error('[immoscout export]', err);
-      return json(res, err.status || 500, { error: err.message || 'Export fehlgeschlagen' });
     }
   }
 
@@ -517,21 +500,21 @@ async function handleApi(path_, method, _url, req, res) {
   if (immoscoutDownload && method === 'GET') {
     if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
     const runId = immoscoutDownload[1];
-    const zipPath = path.resolve(IMMOSCOUT_RUNS_DIR, runId, 'immoscout-export.zip');
-    if (!zipPath.startsWith(path.resolve(IMMOSCOUT_RUNS_DIR) + path.sep)) {
+    const xlsxPath = path.resolve(IMMOSCOUT_RUNS_DIR, runId, 'immoscout-export.xlsx');
+    if (!xlsxPath.startsWith(path.resolve(IMMOSCOUT_RUNS_DIR) + path.sep)) {
       return json(res, 404, { error: 'Nicht gefunden' });
     }
 
     let s;
-    try { s = await stat(zipPath); } catch { return json(res, 404, { error: 'Nicht gefunden' }); }
+    try { s = await stat(xlsxPath); } catch { return json(res, 404, { error: 'Nicht gefunden' }); }
 
     res.writeHead(200, {
-      'Content-Type': 'application/zip',
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Length': s.size,
-      'Content-Disposition': `attachment; filename="immoscout-export-${runId}.zip"`,
+      'Content-Disposition': `attachment; filename="immoscout-export-${runId}.xlsx"`,
       'Cache-Control': 'no-store',
     });
-    createReadStream(zipPath).pipe(res);
+    createReadStream(xlsxPath).pipe(res);
     return;
   }
 
