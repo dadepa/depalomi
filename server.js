@@ -228,6 +228,7 @@ function summarizeImmoscoutCaptures(list) {
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     textLength: String(item.text || '').length,
+    printTextLength: String(item.printText || '').length,
   }));
 }
 
