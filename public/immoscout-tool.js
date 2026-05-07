@@ -237,14 +237,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const response = await fetch(`/api/immoscout/captures/${encodeURIComponent(id)}/source`);
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Quelltext konnte nicht geladen werden');
       sourceTitle.textContent = `Capture ${data.id || id}`;
-      sourceText.value = data.sourceText || '';
+      sourceText.value = data.sourceText || '[Kein Quelltext gespeichert]';
       sourceText.focus();
     } catch (err) {
-      sourceText.value = '';
-      setStatusTitle(err.message || 'Quelltext konnte nicht geladen werden');
+      const message = err.message || 'Quelltext konnte nicht geladen werden';
+      sourceText.value = `Fehler: ${message}\n\nBitte Seite neu laden und erneut versuchen. Wenn das bleibt, ist der Backend-Endpunkt noch nicht deployed oder der Capture wurde nicht gefunden.`;
+      setStatusTitle(message);
     }
   }
 

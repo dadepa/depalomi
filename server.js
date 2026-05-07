@@ -232,19 +232,23 @@ function summarizeImmoscoutCaptures(list) {
 }
 
 function createImmoscoutCaptureSource(item) {
+  const pageText = String(item.text || '').trim();
+  const printText = String(item.printText || '').trim();
   const lines = [
     `URL: ${item.url || ''}`,
     item.title ? `Titel: ${item.title}` : '',
     item.printUrl ? `Druckversion: ${item.printUrl}` : '',
     item.createdAt ? `Erfasst: ${item.createdAt}` : '',
     item.updatedAt ? `Aktualisiert: ${item.updatedAt}` : '',
+    `Seitentext-Zeichen: ${pageText.length.toLocaleString('de-DE')}`,
+    `Drucktext-Zeichen: ${printText.length.toLocaleString('de-DE')}`,
     '',
     'Seitentext',
-    String(item.text || ''),
+    pageText || '[Kein Seitentext gespeichert]',
   ];
 
-  if (item.printText) {
-    lines.push('', 'Druckversion-Text', String(item.printText || ''));
+  if (printText) {
+    lines.push('', 'Druckversion-Text', printText);
   }
 
   return lines.filter(line => line !== null && line !== undefined).join('\n');
@@ -476,15 +480,17 @@ async function handleApi(path_, method, _url, req, res) {
   }
 
   // GET /api/immoscout/captures/:id/source (admin only)
-  const immoscoutCaptureSource = path_.match(/^\/api\/immoscout\/captures\/(\d{6,14})\/source$/);
+  const immoscoutCaptureSource = path_.match(/^\/api\/immoscout\/captures\/([^/]+)\/source$/);
   if (immoscoutCaptureSource && method === 'GET') {
     if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
     const captures = await readImmoscoutCaptures();
-    const id = immoscoutCaptureSource[1];
+    const id = decodeURIComponent(immoscoutCaptureSource[1]);
     const capture = captures.find(item => item.id === id);
     if (!capture) return json(res, 404, { error: 'Capture nicht gefunden' });
     return json(res, 200, {
       id,
+      textLength: String(capture.text || '').length,
+      printTextLength: String(capture.printText || '').length,
       sourceText: createImmoscoutCaptureSource(capture),
     });
   }
