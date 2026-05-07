@@ -71,7 +71,7 @@ npm run dev
 
 ## Internal Tools
 
-- **ImmoScout Browser-Import**: `/immoscout-tool/` generates a bookmarklet behind the existing admin login. Run the bookmarklet on an ImmoScout expose to save a browser capture, then export all captures directly as `immoscout-export.xlsx`.
+- **ImmoScout Browser-Import**: `/immoscout-tool/` generates a bookmarklet behind the existing admin login. Run the bookmarklet on an ImmoScout expose to save a browser capture, then export all captures directly as `immoscout-export.xlsx`. The Excel includes a `Quelltext` column with the captured website text for manual checking.
 - The export leaves missing values empty when they are not present in the captured text.
 
 ## Hero Video
