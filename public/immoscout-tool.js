@@ -194,7 +194,28 @@ document.addEventListener('DOMContentLoaded', () => {
   function createBookmarklet(token) {
     const endpoint = `${window.location.origin}/api/immoscout/capture`;
     const returnUrl = `${window.location.origin}/immoscout-tool/?captureReturn=1`;
-    const code = `(async()=>{const m=location.href.match(/\\/expose\\/(\\d+)/),id=m&&m[1],pu=id?location.origin+"/expose/"+id+"/print":"";let pt="",ph="",pw=null,printed=false,closed=false;if(pu){try{pw=open(pu,"_blank")}catch(_){ }try{const pr=await fetch(pu,{credentials:"include"}),h=await pr.text(),d2=new DOMParser().parseFromString(h,"text/html");ph=d2.title||"";pt=d2.body?d2.body.innerText:""}catch(_){}}const cp=()=>{if(closed||!pw)return;closed=true;setTimeout(()=>{try{pw&&!pw.closed&&pw.close()}catch(_){ }},900)};const dop=()=>{if(printed||!pw)return;printed=true;try{pw.addEventListener("afterprint",cp,{once:true});pw.onafterprint=cp}catch(_){ }try{pw.document.title=id||"immoscout";pw.focus();pw.print()}catch(_){ }setTimeout(cp,30000)};try{pw&&pw.addEventListener("load",dop,{once:true});setTimeout(dop,1800)}catch(_){ }const p={url:location.href,title:document.title,text:document.body?document.body.innerText:"",printUrl:pu,printTitle:ph,printText:pt};const b=JSON.stringify(p);try{const r=await fetch(${JSON.stringify(endpoint)}+"?token="+${JSON.stringify(token)},{method:"POST",mode:"cors",headers:{"Content-Type":"application/json"},body:b});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));location.href=${JSON.stringify(returnUrl)}+"&captured="+encodeURIComponent(d.id||id||"")}catch(e){p.captureToken=${JSON.stringify(token)};const f=JSON.stringify(p);try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde kopiert; im Tool einfügen.")}catch(_){prompt("Capture kopieren und im Tool einfügen:",f)}location.href=${JSON.stringify(returnUrl)}+"&manual=1"}})()`;
+    const code = [
+      '(async()=>{',
+      'const m=location.href.match(/\\/expose\\/(\\d+)/),id=m&&m[1],pu=id?location.origin+"/expose/"+id+"/print":"";',
+      'let pt="",ph="",pw=null,printed=false,closed=false,h="";',
+      'const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");',
+      'if(pu){',
+      'try{pw=open("about:blank","_blank");if(pw){pw.document.open();pw.document.write("<!doctype html><title>"+esc(id||"ImmoScout")+"</title><body style=\\"font-family:sans-serif;padding:24px\\">Druckversion wird geladen ...</body>");pw.document.close();}}catch(_){}',
+      'try{const pr=await fetch(pu,{credentials:"include"});h=await pr.text();const d2=new DOMParser().parseFromString(h,"text/html");ph=d2.title||"";pt=d2.body?d2.body.innerText:"";if(pw&&h){const base="<base href=\\""+esc(pu)+"\\">",out=/<head[\\s>]/i.test(h)?h.replace(/<head([^>]*)>/i,"<head$1>"+base):"<!doctype html><html><head>"+base+"<title>"+esc(ph||id||"ImmoScout")+"</title></head><body>"+(d2.body?d2.body.innerHTML:esc(pt))+"</body></html>";pw.document.open();pw.document.write(out);pw.document.close();}}catch(_){try{if(pw)pw.location.href=pu}catch(__){}}',
+      '}',
+      'const cp=()=>{if(closed||!pw)return;closed=true;setTimeout(()=>{try{pw&&!pw.closed&&pw.close()}catch(_){}},900)};',
+      'const dop=()=>{if(printed||!pw)return;printed=true;try{pw.addEventListener("afterprint",cp,{once:true});pw.onafterprint=cp}catch(_){}try{pw.document.title=id||"immoscout";pw.focus();pw.print()}catch(_){}setTimeout(cp,30000)};',
+      'try{if(pw){pw.addEventListener("load",()=>setTimeout(dop,600),{once:true});setTimeout(dop,2400)}}catch(_){}',
+      'const p={url:location.href,title:document.title,text:document.body?document.body.innerText:"",printUrl:pu,printTitle:ph,printText:pt};',
+      'const b=JSON.stringify(p);',
+      `try{const r=await fetch(${JSON.stringify(endpoint)}+"?token="+${JSON.stringify(token)},{method:"POST",mode:"cors",headers:{"Content-Type":"application/json"},body:b});`,
+      'const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));',
+      `location.href=${JSON.stringify(returnUrl)}+"&captured="+encodeURIComponent(d.id||id||"")}`,
+      `catch(e){p.captureToken=${JSON.stringify(token)};const f=JSON.stringify(p);`,
+      'try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde kopiert; im Tool einfuegen.")}catch(_){prompt("Capture kopieren und im Tool einfuegen:",f)}',
+      `location.href=${JSON.stringify(returnUrl)}+"&manual=1"}`,
+      '})()',
+    ].join('');
     return `javascript:${code}`;
   }
 
