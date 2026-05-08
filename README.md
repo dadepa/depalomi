@@ -64,6 +64,8 @@ npm run dev
 | `OPENAI_MODEL` | `gpt-4.1-mini` | Optional model override for GPT-assisted extraction |
 | `OPENAI_REASONING_EFFORT` | `low` for GPT-5 models | Optional GPT-5 reasoning effort: `minimal`, `low`, `medium`, or `high` |
 | `IMMOSCOUT_EXPORT_CONCURRENCY` | `3` | Number of ImmoScout captures processed in parallel, capped at `8` |
+| `IMMOSCOUT_OPENAI_BATCH_SIZE` | `3` | Number of captures per GPT request, capped at `3` |
+| `IMMOSCOUT_OPENAI_CONCURRENCY` | `3` | Number of GPT batch requests sent in parallel, capped at `3` |
 
 ## CMS Features
 

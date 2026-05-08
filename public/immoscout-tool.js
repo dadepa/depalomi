@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       progressItems.set(id, {
         id,
         status: 'pending',
-        message: `Wird verarbeitet (${index}/${total})`,
+        message: progress.message || `Wird verarbeitet (${index}/${total})`,
       });
       renderStatusItems(Array.from(progressItems.values()));
       return;
