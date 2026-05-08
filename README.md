@@ -61,6 +61,8 @@ npm run dev
 | `NODE_ENV` | — | Set to `production` to enable Secure cookie flag |
 | `OPENAI_API_KEY` | — | Optional: enables GPT-assisted field extraction when real listing text is available |
 | `OPENAI_MODEL` | `gpt-4.1-mini` | Optional model override for GPT-assisted extraction |
+| `OPENAI_REASONING_EFFORT` | `low` for GPT-5 models | Optional GPT-5 reasoning effort: `minimal`, `low`, `medium`, or `high` |
+| `IMMOSCOUT_EXPORT_CONCURRENCY` | `3` | Number of ImmoScout captures processed in parallel, capped at `8` |
 
 ## CMS Features
 

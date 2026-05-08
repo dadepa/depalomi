@@ -353,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateExportProgress(progress, progressItems) {
     const index = Number(progress.index) || 0;
+    const completed = Number(progress.completed) || 0;
     const total = Number(progress.total) || 0;
     const id = progress.id || '';
 
@@ -363,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (progress.phase === 'processing') {
-      setStatusTitle(`Excel-Export läuft: ${index}/${total} Objekte - ID ${id}`);
+      setStatusTitle(`Excel-Export läuft: Objekt ${index}/${total} - ID ${id}`);
       progressItems.set(id, {
         id,
         status: 'pending',
@@ -374,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (progress.phase === 'done') {
-      setStatusTitle(`Excel-Export läuft: ${index}/${total} Objekte - ID ${id} fertig`);
+      setStatusTitle(`Excel-Export läuft: ${completed || index}/${total} Objekte fertig - ID ${id}`);
       progressItems.set(id, {
         id,
         status: progress.status || 'ok',
