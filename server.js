@@ -231,6 +231,20 @@ function summarizeImmoscoutCaptures(list) {
   }));
 }
 
+function selectImmoscoutCapturesForExport(captures, ids) {
+  const selectedIds = Array.isArray(ids)
+    ? [...new Set(ids.map(id => String(id || '').trim()).filter(Boolean))]
+    : [];
+  if (!selectedIds.length) return captures;
+
+  const byId = new Map(captures.map(item => [String(item.id), item]));
+  const missing = selectedIds.filter(id => !byId.has(id));
+  if (missing.length) {
+    throw Object.assign(new Error(`Captures nicht gefunden: ${missing.join(', ')}`), { status: 404 });
+  }
+  return selectedIds.map(id => byId.get(id));
+}
+
 function createImmoscoutCaptureSource(item) {
   const pageText = String(item.text || '').trim();
   const printText = String(item.printText || '').trim();
@@ -539,8 +553,7 @@ async function handleApi(path_, method, _url, req, res) {
 
     try {
       const captures = await readImmoscoutCaptures();
-      const ids = _url.searchParams.getAll('id').map(String);
-      const selected = ids.length ? captures.filter(item => ids.includes(item.id)) : captures;
+      const selected = selectImmoscoutCapturesForExport(captures, _url.searchParams.getAll('id'));
       await writeSse(res, 'progress', {
         phase: 'start',
         index: 0,
@@ -575,8 +588,7 @@ async function handleApi(path_, method, _url, req, res) {
 
     try {
       const captures = await readImmoscoutCaptures();
-      const ids = Array.isArray(data.ids) ? data.ids.map(String) : [];
-      const selected = ids.length ? captures.filter(item => ids.includes(item.id)) : captures;
+      const selected = selectImmoscoutCapturesForExport(captures, data.ids);
       const result = await createImmoscoutCaptureExcel({ captures: selected, runsDir: IMMOSCOUT_RUNS_DIR });
       return json(res, 200, { ok: true, ...result });
     } catch (err) {

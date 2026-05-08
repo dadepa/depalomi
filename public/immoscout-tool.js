@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let bookmarklet = '';
   let exportStream = null;
+  let captureIds = [];
 
   checkAuth();
 
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   exportCaptures.addEventListener('click', async () => {
+    const ids = captureIds.slice();
     setCaptureBusy(true);
     showStatus('Excel-Export startet ...', []);
     downloadLink.hidden = true;
@@ -100,9 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (window.EventSource) {
-        await exportCapturesWithProgress();
+        await exportCapturesWithProgress(ids);
       } else {
-        await exportCapturesWithFetch();
+        await exportCapturesWithFetch(ids);
       }
     } catch (err) {
       showStatus(err.message || 'Excel-Export fehlgeschlagen', []);
@@ -111,12 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function exportCapturesWithProgress() {
+  function exportCapturesWithProgress(ids) {
     return new Promise(resolve => {
       if (exportStream) exportStream.close();
 
       const progressItems = new Map();
-      exportStream = new EventSource('/api/immoscout/captures/export/events');
+      const params = new URLSearchParams();
+      ids.forEach(id => params.append('id', id));
+      const url = `/api/immoscout/captures/export/events${params.toString() ? `?${params}` : ''}`;
+      exportStream = new EventSource(url);
       let finished = false;
 
       const finish = () => {
@@ -134,7 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       exportStream.addEventListener('complete', event => {
         const data = parseEventData(event) || {};
-        showStatus('Excel-Export fertig', data.items || Array.from(progressItems.values()));
+        const items = data.items || Array.from(progressItems.values());
+        const total = Number(data.captureCount || data.rowCount || items.length) || items.length;
+        showStatus(`Excel-Export fertig: ${items.length}/${total} Objekte`, items);
         downloadLink.href = data.downloadUrl;
         downloadLink.hidden = false;
         if (data.downloadUrl) window.location.href = data.downloadUrl;
@@ -155,16 +162,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  async function exportCapturesWithFetch() {
+  async function exportCapturesWithFetch(ids) {
     const response = await fetch('/api/immoscout/captures/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ ids }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Capture-Export fehlgeschlagen');
 
-    showStatus('Excel-Export fertig', data.items || []);
+    const items = data.items || [];
+    const total = Number(data.captureCount || data.rowCount || items.length) || items.length;
+    showStatus(`Excel-Export fertig: ${items.length}/${total} Objekte`, items);
     downloadLink.href = data.downloadUrl;
     downloadLink.hidden = false;
     window.location.href = data.downloadUrl;
@@ -259,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderCaptures(items) {
     capturesBody.innerHTML = '';
+    captureIds = items.map(item => String(item.id || '')).filter(Boolean);
     exportCaptures.disabled = items.length === 0;
     clearCaptures.disabled = items.length === 0;
 
