@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const downloadLink = document.getElementById('immoscoutDownload');
 
   let bookmarklet = '';
+  let exportStream = null;
 
   checkAuth();
 
@@ -93,29 +94,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
   exportCaptures.addEventListener('click', async () => {
     setCaptureBusy(true);
-    showStatus('Excel-Export läuft ...', []);
+    showStatus('Excel-Export startet ...', []);
     downloadLink.hidden = true;
     downloadLink.removeAttribute('href');
 
     try {
-      const response = await fetch('/api/immoscout/captures/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Capture-Export fehlgeschlagen');
-
-      showStatus('Excel-Export fertig', data.items || []);
-      downloadLink.href = data.downloadUrl;
-      downloadLink.hidden = false;
-      window.location.href = data.downloadUrl;
+      if (window.EventSource) {
+        await exportCapturesWithProgress();
+      } else {
+        await exportCapturesWithFetch();
+      }
     } catch (err) {
       showStatus(err.message || 'Excel-Export fehlgeschlagen', []);
     } finally {
       setCaptureBusy(false);
     }
   });
+
+  function exportCapturesWithProgress() {
+    return new Promise(resolve => {
+      if (exportStream) exportStream.close();
+
+      const progressItems = new Map();
+      exportStream = new EventSource('/api/immoscout/captures/export/events');
+      let finished = false;
+
+      const finish = () => {
+        finished = true;
+        if (exportStream) exportStream.close();
+        exportStream = null;
+        resolve();
+      };
+
+      exportStream.addEventListener('progress', event => {
+        const progress = parseEventData(event);
+        if (!progress) return;
+        updateExportProgress(progress, progressItems);
+      });
+
+      exportStream.addEventListener('complete', event => {
+        const data = parseEventData(event) || {};
+        showStatus('Excel-Export fertig', data.items || Array.from(progressItems.values()));
+        downloadLink.href = data.downloadUrl;
+        downloadLink.hidden = false;
+        if (data.downloadUrl) window.location.href = data.downloadUrl;
+        finish();
+      });
+
+      exportStream.addEventListener('export-error', event => {
+        const data = parseEventData(event) || {};
+        showStatus(data.error || 'Excel-Export fehlgeschlagen', Array.from(progressItems.values()));
+        finish();
+      });
+
+      exportStream.onerror = () => {
+        if (finished) return;
+        showStatus('Verbindung zum Export verloren', Array.from(progressItems.values()));
+        finish();
+      };
+    });
+  }
+
+  async function exportCapturesWithFetch() {
+    const response = await fetch('/api/immoscout/captures/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Capture-Export fehlgeschlagen');
+
+    showStatus('Excel-Export fertig', data.items || []);
+    downloadLink.href = data.downloadUrl;
+    downloadLink.hidden = false;
+    window.location.href = data.downloadUrl;
+  }
 
   async function checkAuth() {
     try {
@@ -250,6 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setCaptureBusy(isBusy) {
+    if (!isBusy && exportStream) {
+      exportStream.close();
+      exportStream = null;
+    }
     exportCaptures.disabled = isBusy;
     refreshCaptures.disabled = isBusy;
     clearCaptures.disabled = isBusy;
@@ -260,6 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function showStatus(title, items) {
     statusBox.hidden = false;
     setStatusTitle(title);
+    renderStatusItems(items);
+  }
+
+  function renderStatusItems(items) {
     resultsBody.innerHTML = '';
 
     if (!items.length) {
@@ -273,10 +334,49 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escapeHtml(item.id || '')}</td>
-        <td><span class="status-pill ${item.status === 'ok' ? 'ok' : item.status === 'blocked' ? 'blocked' : 'partial'}">${statusLabel(item.status)}</span></td>
+        <td><span class="status-pill ${statusClass(item.status)}">${statusLabel(item.status)}</span></td>
         <td>${escapeHtml(item.message || '')}</td>
       `;
       resultsBody.appendChild(tr);
+    }
+  }
+
+  function updateExportProgress(progress, progressItems) {
+    const index = Number(progress.index) || 0;
+    const total = Number(progress.total) || 0;
+    const id = progress.id || '';
+
+    if (progress.phase === 'start') {
+      setStatusTitle(`Excel-Export startet: 0/${total} Objekte`);
+      renderStatusItems(Array.from(progressItems.values()));
+      return;
+    }
+
+    if (progress.phase === 'processing') {
+      setStatusTitle(`Excel-Export läuft: ${index}/${total} Objekte - ID ${id}`);
+      progressItems.set(id, {
+        id,
+        status: 'pending',
+        message: `Wird verarbeitet (${index}/${total})`,
+      });
+      renderStatusItems(Array.from(progressItems.values()));
+      return;
+    }
+
+    if (progress.phase === 'done') {
+      setStatusTitle(`Excel-Export läuft: ${index}/${total} Objekte - ID ${id} fertig`);
+      progressItems.set(id, {
+        id,
+        status: progress.status || 'ok',
+        message: progress.message || `Fertig (${index}/${total})`,
+      });
+      renderStatusItems(Array.from(progressItems.values()));
+      return;
+    }
+
+    if (progress.phase === 'writing') {
+      setStatusTitle(`Excel-Datei wird erstellt: ${total}/${total} Objekte`);
+      renderStatusItems(Array.from(progressItems.values()));
     }
   }
 
@@ -287,10 +387,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function statusLabel(status) {
     if (status === 'ok') return 'ok';
+    if (status === 'pending') return 'läuft';
     if (status === 'blocked') return 'blockiert';
     if (status === 'partial') return 'teilweise';
     if (status === 'failed') return 'fehler';
     return status || 'offen';
+  }
+
+  function statusClass(status) {
+    if (status === 'ok') return 'ok';
+    if (status === 'pending') return 'pending';
+    if (status === 'blocked' || status === 'failed') return 'blocked';
+    if (status === 'empty') return 'empty';
+    return 'partial';
+  }
+
+  function parseEventData(event) {
+    try {
+      return JSON.parse(event.data || '{}');
+    } catch {
+      return null;
+    }
   }
 
   function formatTextLength(value) {

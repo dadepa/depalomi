@@ -1259,6 +1259,12 @@ footer {
   background: rgba(200, 98, 10, 0.08);
 }
 
+.status-pill.pending {
+  border-color: rgba(12, 41, 76, 0.3);
+  color: var(--navy);
+  background: rgba(12, 41, 76, 0.08);
+}
+
 .status-pill.blocked,
 .status-pill.empty {
   border-color: var(--border);

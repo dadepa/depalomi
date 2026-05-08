@@ -279,6 +279,13 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+function writeSse(res, event, data) {
+  if (res.destroyed || res.writableEnded) return Promise.resolve();
+  const chunk = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  if (res.write(chunk)) return Promise.resolve();
+  return new Promise(resolve => res.once('drain', resolve));
+}
+
 function html(res, status, content) {
   res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(content);
@@ -514,6 +521,50 @@ async function handleApi(path_, method, _url, req, res) {
     if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
     await saveImmoscoutCaptures([]);
     return json(res, 200, { ok: true });
+  }
+
+  // GET /api/immoscout/captures/export/events (admin only)
+  if (path_ === '/api/immoscout/captures/export/events' && method === 'GET') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+
+    let closed = false;
+    req.on('close', () => { closed = true; });
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    try {
+      const captures = await readImmoscoutCaptures();
+      const ids = _url.searchParams.getAll('id').map(String);
+      const selected = ids.length ? captures.filter(item => ids.includes(item.id)) : captures;
+      await writeSse(res, 'progress', {
+        phase: 'start',
+        index: 0,
+        total: selected.length,
+        message: `Export startet: ${selected.length} Objekte.`,
+      });
+
+      const result = await createImmoscoutCaptureExcel({
+        captures: selected,
+        runsDir: IMMOSCOUT_RUNS_DIR,
+        onProgress: progress => closed ? undefined : writeSse(res, 'progress', progress),
+      });
+      if (!closed) await writeSse(res, 'complete', { ok: true, ...result });
+    } catch (err) {
+      console.error('[immoscout capture export stream]', err);
+      if (!closed) {
+        await writeSse(res, 'export-error', {
+          error: err.message || 'Capture-Export fehlgeschlagen',
+        });
+      }
+    } finally {
+      if (!closed && !res.writableEnded) res.end();
+    }
+    return;
   }
 
   // POST /api/immoscout/captures/export (admin only)
