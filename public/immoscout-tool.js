@@ -8,8 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportCaptures = document.getElementById('immoscoutExportCaptures');
   const refreshCaptures = document.getElementById('immoscoutRefreshCaptures');
   const clearCaptures = document.getElementById('immoscoutClearCaptures');
-  const capturePaste = document.getElementById('immoscoutCapturePaste');
-  const importCapture = document.getElementById('immoscoutImportCapture');
   const capturesBody = document.getElementById('immoscoutCaptures');
   const sourcePreview = document.getElementById('immoscoutSourcePreview');
   const sourceTitle = document.getElementById('immoscoutSourceTitle');
@@ -45,31 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Alle Captures löschen?')) return;
     await fetch('/api/immoscout/captures', { method: 'DELETE' });
     await loadCaptures();
-  });
-
-  importCapture.addEventListener('click', async () => {
-    let data;
-    try {
-      data = JSON.parse(capturePaste.value.trim());
-    } catch {
-      setStatusTitle('Capture JSON ist ungültig');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/immoscout/captures/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Import fehlgeschlagen');
-      capturePaste.value = '';
-      await loadCaptures();
-      setStatusTitle(`Capture ${result.capture.id} importiert`);
-    } catch (err) {
-      setStatusTitle(err.message || 'Import fehlgeschlagen');
-    }
   });
 
   capturesBody.addEventListener('click', event => {
@@ -237,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));',
       `location.href=${JSON.stringify(returnUrl)}+"&captured="+encodeURIComponent(d.id||id||"")}`,
       `catch(e){p.captureToken=${JSON.stringify(token)};const f=JSON.stringify(p);`,
-      'try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde kopiert; im Tool einfuegen.")}catch(_){prompt("Capture kopieren und im Tool einfuegen:",f)}',
+      'try{await navigator.clipboard.writeText(f);alert("Direktimport blockiert. Capture wurde in die Zwischenablage kopiert. Bitte Seite neu laden und erneut versuchen.")}catch(_){alert("Direktimport blockiert. Bitte Seite neu laden und erneut versuchen.")}',
       `location.href=${JSON.stringify(returnUrl)}+"&manual=1"}`,
       '})()',
     ].join('');
@@ -254,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', cleanUrl);
 
     if (manual) {
-      setStatusTitle('Capture wurde kopiert');
+      setStatusTitle('Direktimport wurde blockiert');
       return;
     }
 
@@ -320,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
     exportCaptures.disabled = isBusy;
     refreshCaptures.disabled = isBusy;
     clearCaptures.disabled = isBusy;
-    importCapture.disabled = isBusy;
     exportCaptures.textContent = isBusy ? 'Export läuft ...' : 'Captures exportieren';
   }
 

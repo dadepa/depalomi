@@ -1117,24 +1117,9 @@ footer {
   margin-top: 1.5rem;
 }
 
-.tool-actions .btn:disabled,
-.manual-capture .btn:disabled {
+.tool-actions .btn:disabled {
   opacity: 0.55;
   cursor: wait;
-}
-
-.manual-capture {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: end;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-}
-
-.manual-capture textarea {
-  min-height: 96px;
 }
 
 .capture-table-wrap {
@@ -1293,14 +1278,9 @@ footer {
   .tool-auth,
   .export-status-head,
   .tool-subhead,
-  .source-preview-head,
-  .manual-capture {
+  .source-preview-head {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .manual-capture {
-    display: flex;
   }
 
   .export-tool {
@@ -1308,7 +1288,6 @@ footer {
   }
 
   .tool-actions .btn,
-  .manual-capture .btn,
   .source-preview-actions,
   .source-preview-actions .btn,
   .tool-subhead .btn {
