@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const captureTool = document.getElementById('immoscoutCaptureTool');
   if (!captureTool) return;
 
-  const bookmarkletLink = document.getElementById('immoscoutBookmarklet');
   const copyBookmarklet = document.getElementById('immoscoutCopyBookmarklet');
   const exportCaptures = document.getElementById('immoscoutExportCaptures');
   const refreshCaptures = document.getElementById('immoscoutRefreshCaptures');
@@ -31,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await navigator.clipboard.writeText(bookmarklet);
       setStatusTitle('Bookmarklet kopiert');
     } catch {
-      setStatusTitle('Bookmarklet kann im Link kopiert werden');
+      setStatusTitle('Bookmarklet konnte nicht kopiert werden');
     }
   });
 
@@ -175,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Captures konnten nicht geladen werden');
       bookmarklet = createBookmarklet(data.token);
-      bookmarkletLink.href = bookmarklet;
       renderCaptures(data.captures || []);
       if (!(data.captures || []).length) {
         sourcePreview.hidden = true;
