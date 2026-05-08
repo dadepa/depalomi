@@ -3,10 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const captureTool = document.getElementById('immoscoutCaptureTool');
   if (!captureTool) return;
 
+  const loginForm = document.getElementById('immoscoutLoginForm');
+  const loginUsername = document.getElementById('immoscoutUsername');
+  const loginPassword = document.getElementById('immoscoutPassword');
+  const loginButton = document.getElementById('immoscoutLoginButton');
+  const authMessage = document.getElementById('immoscoutAuthMessage');
   const copyBookmarklet = document.getElementById('immoscoutCopyBookmarklet');
   const exportCaptures = document.getElementById('immoscoutExportCaptures');
   const refreshCaptures = document.getElementById('immoscoutRefreshCaptures');
   const clearCaptures = document.getElementById('immoscoutClearCaptures');
+  const logoutButton = document.getElementById('immoscoutLogout');
+  const profileLine = document.getElementById('immoscoutProfileLine');
   const capturesBody = document.getElementById('immoscoutCaptures');
   const sourcePreview = document.getElementById('immoscoutSourcePreview');
   const sourceTitle = document.getElementById('immoscoutSourceTitle');
@@ -23,6 +30,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let captureIds = [];
 
   checkAuth();
+
+  loginForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    await login();
+  });
+
+  logoutButton.addEventListener('click', async () => {
+    await fetch('/api/immoscout/logout', { method: 'POST' });
+    bookmarklet = '';
+    captureIds = [];
+    renderCaptures([]);
+    captureTool.hidden = true;
+    authBox.hidden = false;
+    loginPassword.value = '';
+    setStatusTitle('Abgemeldet');
+  });
 
   copyBookmarklet.addEventListener('click', async () => {
     if (!bookmarklet) return;
@@ -153,18 +176,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkAuth() {
     try {
-      const response = await fetch('/api/admin/me');
+      const response = await fetch('/api/immoscout/me');
       const data = await response.json();
       const authenticated = Boolean(data.authenticated);
       captureTool.hidden = !authenticated;
       authBox.hidden = authenticated;
       if (authenticated) {
+        renderProfile(data.profile);
         await loadCaptures();
         handleCaptureReturn();
+      } else {
+        loginUsername.focus();
       }
     } catch {
       captureTool.hidden = true;
       authBox.hidden = false;
+    }
+  }
+
+  async function login() {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    if (!username || !password) {
+      authMessage.textContent = 'Benutzername und Passwort eingeben.';
+      return;
+    }
+
+    loginButton.disabled = true;
+    authMessage.textContent = '';
+    try {
+      const response = await fetch('/api/immoscout/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Login fehlgeschlagen');
+
+      loginPassword.value = '';
+      authBox.hidden = true;
+      captureTool.hidden = false;
+      renderProfile(data.profile);
+      await loadCaptures();
+      handleCaptureReturn();
+      setStatusTitle(`Eingeloggt als ${data.profile?.name || data.profile?.username || username}`);
+    } catch (err) {
+      authMessage.textContent = err.message || 'Login fehlgeschlagen';
+    } finally {
+      loginButton.disabled = false;
     }
   }
 
@@ -185,6 +244,11 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceText.value = '';
       setStatusTitle(err.message || 'Captures konnten nicht geladen werden');
     }
+  }
+
+  function renderProfile(profile) {
+    const name = profile?.name || profile?.username || '';
+    profileLine.textContent = name ? `Eingeloggt als ${name}` : '';
   }
 
   function createBookmarklet(token) {

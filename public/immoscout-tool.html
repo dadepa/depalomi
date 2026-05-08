@@ -24,10 +24,15 @@
 
       <div class="tool-auth" id="immoscoutAuth" hidden>
         <div>
-          <strong>Admin-Login erforderlich</strong>
-          <span>Dieses Tool ist gegen öffentliche Nutzung geschützt.</span>
+          <strong>Tool-Login erforderlich</strong>
+          <span>Dieses Tool ist nur für freigeschaltete Profile verfügbar.</span>
         </div>
-        <a class="btn btn-navy" href="/admin/">Einloggen</a>
+        <form class="tool-auth-form" id="immoscoutLoginForm">
+          <input class="tool-auth-input" id="immoscoutUsername" autocomplete="username" placeholder="Benutzername" />
+          <input class="tool-auth-input" id="immoscoutPassword" type="password" autocomplete="current-password" placeholder="Passwort" />
+          <button class="btn btn-navy" type="submit" id="immoscoutLoginButton">Einloggen</button>
+          <span class="tool-auth-message" id="immoscoutAuthMessage"></span>
+        </form>
       </div>
 
       <section class="export-tool capture-tool" id="immoscoutCaptureTool" hidden>
@@ -35,6 +40,7 @@
           <div>
             <p class="label">Browser-Import</p>
             <h2>Captures sammeln</h2>
+            <p class="tool-profile-line" id="immoscoutProfileLine"></p>
           </div>
         </div>
 
@@ -43,6 +49,7 @@
           <button class="btn btn-primary" type="button" id="immoscoutExportCaptures">Captures exportieren</button>
           <button class="btn btn-outline" type="button" id="immoscoutRefreshCaptures">Aktualisieren</button>
           <button class="btn btn-outline" type="button" id="immoscoutClearCaptures">Leeren</button>
+          <button class="btn btn-outline" type="button" id="immoscoutLogout">Abmelden</button>
         </div>
 
         <div class="status-table-wrap capture-table-wrap">

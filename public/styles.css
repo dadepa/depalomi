@@ -1041,6 +1041,35 @@ footer {
   padding: 1.5rem;
 }
 
+.tool-auth-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-width: min(100%, 640px);
+}
+
+.tool-auth-input {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  padding: 0 0.9rem;
+  outline: none;
+}
+
+.tool-auth-input:focus {
+  border-color: var(--navy);
+}
+
+.tool-auth-message {
+  grid-column: 1 / -1;
+  min-height: 1.1rem;
+  color: var(--amber);
+  font-size: 0.85rem;
+}
+
 .tool-auth strong,
 .tool-auth span {
   display: block;
@@ -1077,6 +1106,12 @@ footer {
   font-size: 1.4rem;
   color: var(--navy);
   line-height: 1.1;
+}
+
+.tool-profile-line {
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .field-group {
@@ -1281,6 +1316,11 @@ footer {
   .source-preview-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .tool-auth-form {
+    width: 100%;
+    grid-template-columns: 1fr;
   }
 
   .export-tool {

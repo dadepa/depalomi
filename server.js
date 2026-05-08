@@ -29,6 +29,7 @@ const IMMOSCOUT_RUNS_DIR = path.join(DATA_DIR, 'immoscout-runs');
 const CONFIG_FILE    = path.join(DATA_DIR, 'config.json');
 const PORTFOLIO_FILE = path.join(DATA_DIR, 'portfolio.json');
 const PROJECTS_FILE  = path.join(DATA_DIR, 'projects.json');
+const TOOL_PROFILES_FILE = path.join(DATA_DIR, 'tool-profiles.json');
 const IMMOSCOUT_CAPTURES_FILE = path.join(DATA_DIR, 'immoscout-captures.json');
 
 // ── MIME types ───────────────────────────────────────
@@ -48,6 +49,7 @@ const MIME = {
 
 // ── Sessions (in-memory) ─────────────────────────────
 const adminSessions   = new Map(); // token → { expires }
+const toolSessions    = new Map(); // token → { profileId, expires }
 const previewSessions = new Map(); // `slug:token` → { expires }
 const loginAttempts   = new Map(); // ip → { count, resetAt }
 
@@ -135,6 +137,52 @@ function isAdmin(req) {
   return isAdminSession(getAdminCookie(req));
 }
 
+function createToolSession(profileId) {
+  const token = generateToken();
+  toolSessions.set(token, { profileId, expires: Date.now() + SESSION_TTL });
+  return token;
+}
+
+function getToolCookie(req) {
+  const m = (req.headers.cookie || '').match(/dp_immoscout=([a-f0-9]{64})/);
+  return m ? m[1] : null;
+}
+
+async function getImmoscoutProfile(req) {
+  const token = getToolCookie(req);
+  if (!token) return null;
+
+  const session = toolSessions.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expires) {
+    toolSessions.delete(token);
+    return null;
+  }
+
+  const profiles = await readToolProfiles();
+  const profile = profiles.find(item => item.id === session.profileId && item.immoscoutEnabled);
+  if (!profile) {
+    toolSessions.delete(token);
+    return null;
+  }
+  return sanitizeToolProfile(profile);
+}
+
+async function requireImmoscoutProfile(req, res) {
+  const profile = await getImmoscoutProfile(req);
+  if (!profile) {
+    json(res, 401, { error: 'Nicht authentifiziert' });
+    return null;
+  }
+  return profile;
+}
+
+function clearToolSessionsForProfile(profileId) {
+  for (const [token, session] of toolSessions.entries()) {
+    if (session.profileId === profileId) toolSessions.delete(token);
+  }
+}
+
 function createPreviewSession(slug) {
   const token = generateToken();
   previewSessions.set(`${slug}:${token}`, { expires: Date.now() + PREVIEW_TTL });
@@ -190,6 +238,38 @@ async function readProjects() {
 
 async function saveProjects(list) {
   await writeFile(PROJECTS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+}
+
+async function readToolProfiles() {
+  try {
+    const list = JSON.parse(await readFile(TOOL_PROFILES_FILE, 'utf-8'));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveToolProfiles(list) {
+  await writeFile(TOOL_PROFILES_FILE, JSON.stringify(list, null, 2), 'utf-8');
+}
+
+function sanitizeToolProfile(profile) {
+  return {
+    id: profile.id,
+    name: profile.name,
+    username: profile.username,
+    immoscoutEnabled: Boolean(profile.immoscoutEnabled),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
+}
+
+function normalizeToolUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidToolUsername(value) {
+  return /^[a-z0-9._-]{2,60}$/.test(String(value || ''));
 }
 
 async function readImmoscoutCaptures() {
@@ -475,6 +555,50 @@ async function handleApi(path_, method, _url, req, res) {
     return json(res, 200, { authenticated: isAdmin(req) });
   }
 
+  // GET /api/immoscout/me (tool profile auth status)
+  if (path_ === '/api/immoscout/me' && method === 'GET') {
+    const profile = await getImmoscoutProfile(req);
+    return json(res, 200, {
+      authenticated: Boolean(profile),
+      profile,
+    });
+  }
+
+  // POST /api/immoscout/login (tool profile login)
+  if (path_ === '/api/immoscout/login' && method === 'POST') {
+    const ip = getClientIp(req);
+    if (!allowLogin(`immoscout:${ip}`)) {
+      return json(res, 429, { error: 'Zu viele Versuche. Bitte 15 Minuten warten.' });
+    }
+
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+
+    const username = normalizeToolUsername(data.username);
+    const password = String(data.password || '');
+    const profiles = await readToolProfiles();
+    const profile = profiles.find(item => item.username === username && item.immoscoutEnabled);
+    const ok = profile ? await verifyPassword(password, profile.passwordHash) : false;
+
+    if (!ok) {
+      recordFailedLogin(`immoscout:${ip}`);
+      return json(res, 401, { error: 'Zugangsdaten falsch oder Profil nicht freigeschaltet' });
+    }
+
+    loginAttempts.delete(`immoscout:${ip}`);
+    const token = createToolSession(profile.id);
+    setCookie(res, 'dp_immoscout', token, SESSION_TTL);
+    return json(res, 200, { ok: true, profile: sanitizeToolProfile(profile) });
+  }
+
+  // POST /api/immoscout/logout
+  if (path_ === '/api/immoscout/logout' && method === 'POST') {
+    const token = getToolCookie(req);
+    if (token) toolSessions.delete(token);
+    clearCookie(res, 'dp_immoscout');
+    return json(res, 200, { ok: true });
+  }
+
   // POST /api/immoscout/capture (public token — called from bookmarklet)
   if (path_ === '/api/immoscout/capture' && method === 'POST') {
     let data;
@@ -490,9 +614,9 @@ async function handleApi(path_, method, _url, req, res) {
     }
   }
 
-  // GET /api/immoscout/captures (admin only)
+  // GET /api/immoscout/captures (enabled tool profile only)
   if (path_ === '/api/immoscout/captures' && method === 'GET') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     const captures = await readImmoscoutCaptures();
     return json(res, 200, {
       token: config.immoscoutImportToken,
@@ -500,10 +624,10 @@ async function handleApi(path_, method, _url, req, res) {
     });
   }
 
-  // GET /api/immoscout/captures/:id/source (admin only)
+  // GET /api/immoscout/captures/:id/source (enabled tool profile only)
   const immoscoutCaptureSource = path_.match(/^\/api\/immoscout\/captures\/([^/]+)\/source$/);
   if (immoscoutCaptureSource && method === 'GET') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     const captures = await readImmoscoutCaptures();
     const id = decodeURIComponent(immoscoutCaptureSource[1]);
     const capture = captures.find(item => item.id === id);
@@ -516,9 +640,9 @@ async function handleApi(path_, method, _url, req, res) {
     });
   }
 
-  // POST /api/immoscout/captures/import (admin only — manual paste fallback)
+  // POST /api/immoscout/captures/import (enabled tool profile only — hidden manual fallback)
   if (path_ === '/api/immoscout/captures/import' && method === 'POST') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     let data;
     try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
 
@@ -530,16 +654,16 @@ async function handleApi(path_, method, _url, req, res) {
     }
   }
 
-  // DELETE /api/immoscout/captures (admin only)
+  // DELETE /api/immoscout/captures (enabled tool profile only)
   if (path_ === '/api/immoscout/captures' && method === 'DELETE') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     await saveImmoscoutCaptures([]);
     return json(res, 200, { ok: true });
   }
 
-  // GET /api/immoscout/captures/export/events (admin only)
+  // GET /api/immoscout/captures/export/events (enabled tool profile only)
   if (path_ === '/api/immoscout/captures/export/events' && method === 'GET') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
 
     let closed = false;
     req.on('close', () => { closed = true; });
@@ -580,9 +704,9 @@ async function handleApi(path_, method, _url, req, res) {
     return;
   }
 
-  // POST /api/immoscout/captures/export (admin only)
+  // POST /api/immoscout/captures/export (enabled tool profile only)
   if (path_ === '/api/immoscout/captures/export' && method === 'POST') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     let data = {};
     try { data = await readJson(req); } catch { /* body is optional */ }
 
@@ -597,10 +721,10 @@ async function handleApi(path_, method, _url, req, res) {
     }
   }
 
-  // GET /api/immoscout/export/:runId/download (admin only)
+  // GET /api/immoscout/export/:runId/download (enabled tool profile only)
   const immoscoutDownload = path_.match(/^\/api\/immoscout\/export\/([a-z0-9]+)\/download$/);
   if (immoscoutDownload && method === 'GET') {
-    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    if (!await requireImmoscoutProfile(req, res)) return;
     const runId = immoscoutDownload[1];
     const xlsxPath = path.resolve(IMMOSCOUT_RUNS_DIR, runId, 'immoscout-export.xlsx');
     if (!xlsxPath.startsWith(path.resolve(IMMOSCOUT_RUNS_DIR) + path.sep)) {
@@ -638,6 +762,101 @@ async function handleApi(path_, method, _url, req, res) {
     // Invalidate all sessions
     adminSessions.clear();
     clearCookie(res, 'dp_admin');
+    return json(res, 200, { ok: true });
+  }
+
+  // ── Tool Profiles ───────────────────────────────────────
+
+  // GET /api/tool-profiles (admin only)
+  if (path_ === '/api/tool-profiles' && method === 'GET') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    const list = await readToolProfiles();
+    return json(res, 200, list.map(sanitizeToolProfile));
+  }
+
+  // POST /api/tool-profiles
+  if (path_ === '/api/tool-profiles' && method === 'POST') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+
+    const name = String(data.name || '').trim().slice(0, 120);
+    const username = normalizeToolUsername(data.username);
+    const password = String(data.password || '');
+    if (!name || !username || !password) return json(res, 400, { error: 'Name, Benutzername und Passwort sind Pflicht' });
+    if (!isValidToolUsername(username)) return json(res, 400, { error: 'Benutzername: 2-60 Zeichen, nur a-z, 0-9, Punkt, Unterstrich oder Bindestrich' });
+    if (password.length < 8) return json(res, 400, { error: 'Passwort muss mindestens 8 Zeichen haben' });
+
+    const profiles = await readToolProfiles();
+    if (profiles.some(item => item.username === username)) {
+      return json(res, 409, { error: 'Benutzername bereits vergeben' });
+    }
+
+    const now = new Date().toISOString();
+    const entry = {
+      id: generateId(),
+      name,
+      username,
+      passwordHash: await hashPassword(password),
+      immoscoutEnabled: Boolean(data.immoscoutEnabled),
+      createdAt: now,
+      updatedAt: now,
+    };
+    profiles.push(entry);
+    await saveToolProfiles(profiles);
+    return json(res, 200, sanitizeToolProfile(entry));
+  }
+
+  // PATCH /api/tool-profiles/:id
+  const toolProfilePatch = path_.match(/^\/api\/tool-profiles\/([a-z0-9]+)$/);
+  if (toolProfilePatch && method === 'PATCH') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    let data;
+    try { data = await readJson(req); } catch { return json(res, 400, { error: 'Ungültiges JSON' }); }
+
+    const profiles = await readToolProfiles();
+    const idx = profiles.findIndex(item => item.id === toolProfilePatch[1]);
+    if (idx === -1) return json(res, 404, { error: 'Nicht gefunden' });
+
+    const profile = profiles[idx];
+    if ('name' in data) {
+      const name = String(data.name || '').trim().slice(0, 120);
+      if (!name) return json(res, 400, { error: 'Name ist Pflicht' });
+      profile.name = name;
+    }
+    if ('username' in data) {
+      const username = normalizeToolUsername(data.username);
+      if (!isValidToolUsername(username)) return json(res, 400, { error: 'Benutzername: 2-60 Zeichen, nur a-z, 0-9, Punkt, Unterstrich oder Bindestrich' });
+      if (profiles.some(item => item.id !== profile.id && item.username === username)) {
+        return json(res, 409, { error: 'Benutzername bereits vergeben' });
+      }
+      profile.username = username;
+    }
+    if ('immoscoutEnabled' in data) {
+      profile.immoscoutEnabled = Boolean(data.immoscoutEnabled);
+      if (!profile.immoscoutEnabled) clearToolSessionsForProfile(profile.id);
+    }
+    if ('password' in data && data.password) {
+      const password = String(data.password);
+      if (password.length < 8) return json(res, 400, { error: 'Passwort muss mindestens 8 Zeichen haben' });
+      profile.passwordHash = await hashPassword(password);
+      clearToolSessionsForProfile(profile.id);
+    }
+    profile.updatedAt = new Date().toISOString();
+    await saveToolProfiles(profiles);
+    return json(res, 200, sanitizeToolProfile(profile));
+  }
+
+  // DELETE /api/tool-profiles/:id
+  const toolProfileDel = path_.match(/^\/api\/tool-profiles\/([a-z0-9]+)$/);
+  if (toolProfileDel && method === 'DELETE') {
+    if (!isAdmin(req)) return json(res, 401, { error: 'Nicht authentifiziert' });
+    const profiles = await readToolProfiles();
+    const idx = profiles.findIndex(item => item.id === toolProfileDel[1]);
+    if (idx === -1) return json(res, 404, { error: 'Nicht gefunden' });
+    const [profile] = profiles.splice(idx, 1);
+    clearToolSessionsForProfile(profile.id);
+    await saveToolProfiles(profiles);
     return json(res, 200, { ok: true });
   }
 

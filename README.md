@@ -34,9 +34,10 @@ Personal website and CMS for Davide De Palomi — photographer, video editor, we
 │   ├── index.html      # Login
 │   └── dashboard.html  # Portfolio & project management
 └── data/               # Auto-created at runtime
-    ├── config.json     # Hashed admin password
-    ├── portfolio.json  # Photos & videos
-    ├── projects.json   # Client preview projects
+    ├── config.json          # Hashed admin password
+    ├── portfolio.json       # Photos & videos
+    ├── projects.json        # Client preview projects
+    ├── tool-profiles.json   # Tool users managed in the admin dashboard
     └── uploads/        # Uploaded images
 ```
 
@@ -69,11 +70,12 @@ npm run dev
 - **Fotografie**: Upload photos (JPEG, PNG, WEBP) with title, category, description and visibility toggle
 - **Video**: Add videos by URL (YouTube, Vimeo, direct link)
 - **Kunden-Previews**: Password-protected client preview pages — embed any staging URL in an iframe
+- **Tool-Profile**: Create separate tool users and enable access to internal tools such as ImmoScout
 - **Settings**: Change admin password
 
 ## Internal Tools
 
-- **ImmoScout Browser-Import**: `/immoscout-tool/` generates a bookmarklet behind the existing admin login. Run the bookmarklet on an ImmoScout expose to save a browser capture, inspect the captured website text in the browser, then export all captures directly as `immoscout-export.xlsx`.
+- **ImmoScout Browser-Import**: `/immoscout-tool/` uses separate tool profiles that are created and enabled in the admin dashboard. Run the copied bookmarklet on an ImmoScout expose to save a browser capture, inspect the captured website text in the browser, then export all captures directly as `immoscout-export.xlsx`.
 - The export leaves missing values empty when they are not present in the captured text.
 
 ## Hero Video

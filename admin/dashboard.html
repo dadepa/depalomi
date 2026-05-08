@@ -516,6 +516,13 @@
       </div>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">System</div>
+      <div class="sidebar-link" onclick="showPanel('tool-profiles')" id="nav-tool-profiles">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="7" cy="4" r="2.5"/>
+          <path d="M2 12c.7-2.5 2.4-4 5-4s4.3 1.5 5 4"/>
+        </svg>
+        Tool-Profile
+      </div>
       <div class="sidebar-link" onclick="showPanel('settings')" id="nav-settings">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="7" cy="7" r="2"/>
@@ -579,6 +586,23 @@
         <div id="projects-container"></div>
       </div>
 
+      <!-- ── TOOL-PROFILE ───────────────────── -->
+      <div class="panel" id="panel-tool-profiles">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Tool-Profile</div>
+            <div class="panel-sub">Zugänge für interne Tools freischalten</div>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('toolProfile')">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 1v10M1 6h10"/>
+            </svg>
+            Profil hinzufügen
+          </button>
+        </div>
+        <div id="tool-profiles-container"></div>
+      </div>
+
       <!-- ── EINSTELLUNGEN ─────────────────── -->
       <div class="panel" id="panel-settings">
         <div class="panel-header">
@@ -631,16 +655,18 @@
   // ── State ────────────────────────────────────────────
   let portfolio = [];
   let projects  = [];
+  let toolProfiles = [];
   let modalType = null;
   let editId    = null;
   let pendingImageData = null;
 
   // ── Init ─────────────────────────────────────────────
   async function init() {
-    await Promise.all([loadPortfolio(), loadProjects()]);
+    await Promise.all([loadPortfolio(), loadProjects(), loadToolProfiles()]);
     renderPhotos();
     renderVideos();
     renderProjects();
+    renderToolProfiles();
   }
 
   init();
@@ -662,6 +688,11 @@
   async function loadProjects() {
     const r = await fetch('/api/projects');
     if (r.ok) projects = await r.json();
+  }
+
+  async function loadToolProfiles() {
+    const r = await fetch('/api/tool-profiles');
+    if (r.ok) toolProfiles = await r.json();
   }
 
   // ── Render: Photos ────────────────────────────────────
@@ -859,6 +890,30 @@
     </div>`;
   }
 
+  // ── Render: Tool Profiles ──────────────────────────────
+  function renderToolProfiles() {
+    const el = document.getElementById('tool-profiles-container');
+    if (!toolProfiles.length) {
+      el.innerHTML = `<div class="empty"><h3>Noch keine Tool-Profile</h3>Lege ein Profil an und schalte ImmoScout frei.</div>`;
+      return;
+    }
+    el.innerHTML = `<div class="items-list">${toolProfiles.map(toolProfileRow).join('')}</div>`;
+  }
+
+  function toolProfileRow(profile) {
+    return `<div class="list-row" style="grid-template-columns:1fr auto;gap:1.5rem">
+      <div>
+        <div class="list-row-title">${esc(profile.name)}</div>
+        <div class="list-row-meta">@${esc(profile.username)} · Aktualisiert ${formatDate(profile.updatedAt || profile.createdAt)}</div>
+      </div>
+      <div class="list-row-actions">
+        <span class="tag ${profile.immoscoutEnabled ? 'published' : 'draft'}">${profile.immoscoutEnabled ? 'ImmoScout frei' : 'ImmoScout gesperrt'}</span>
+        <button class="btn" onclick='openEditToolProfileModal(${JSON.stringify(profile)})'>Bearbeiten</button>
+        <button class="btn btn-danger" onclick="deleteToolProfile('${profile.id}')">Löschen</button>
+      </div>
+    </div>`;
+  }
+
   // ── Modal: Add/Edit Portfolio ─────────────────────────
   function openModal(type) {
     modalType = type;
@@ -874,6 +929,9 @@
     } else if (type === 'project') {
       document.getElementById('modal-title').textContent = 'Kunden-Projekt hinzufügen';
       document.getElementById('modal-body').innerHTML = projectForm();
+    } else if (type === 'toolProfile') {
+      document.getElementById('modal-title').textContent = 'Tool-Profil hinzufügen';
+      document.getElementById('modal-body').innerHTML = toolProfileForm();
     }
 
     document.getElementById('modal-overlay').classList.add('open');
@@ -900,6 +958,14 @@
     editId = p.id;
     document.getElementById('modal-title').textContent = 'Projekt bearbeiten';
     document.getElementById('modal-body').innerHTML = projectForm(p);
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function openEditToolProfileModal(profile) {
+    modalType = 'toolProfile';
+    editId = profile.id;
+    document.getElementById('modal-title').textContent = 'Tool-Profil bearbeiten';
+    document.getElementById('modal-body').innerHTML = toolProfileForm(profile);
     document.getElementById('modal-overlay').classList.add('open');
   }
 
@@ -1013,6 +1079,28 @@
       </div>`;
   }
 
+  function toolProfileForm(profile = {}) {
+    return `
+      <div class="form-group">
+        <label class="form-label">Name *</label>
+        <input class="form-input" id="f-name" value="${esc(profile.name || '')}" placeholder="z.B. David"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Benutzername *</label>
+        <input class="form-input" id="f-username" value="${esc(profile.username || '')}" placeholder="z.B. david" autocomplete="off"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${profile.id ? 'Neues Passwort (leer lassen = nicht ändern)' : 'Passwort *'}</label>
+        <input type="password" class="form-input" id="f-password" placeholder="${profile.id ? 'Leer lassen zum Beibehalten' : 'Mindestens 8 Zeichen'}" autocomplete="new-password"/>
+      </div>
+      <div class="form-group">
+        <label class="form-check">
+          <input type="checkbox" id="f-immoscout" ${profile.immoscoutEnabled ? 'checked' : ''}/>
+          <span class="form-check-label">ImmoScout-Tool freischalten</span>
+        </label>
+      </div>`;
+  }
+
   function handleFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1055,6 +1143,7 @@
       if (modalType === 'photo')    await savePhoto();
       else if (modalType === 'video')   await saveVideo();
       else if (modalType === 'project') await saveProject();
+      else if (modalType === 'toolProfile') await saveToolProfile();
     } finally {
       btn.disabled = false;
     }
@@ -1137,6 +1226,30 @@
     toast('Gespeichert', 'success');
   }
 
+  async function saveToolProfile() {
+    const name = document.getElementById('f-name').value.trim();
+    const username = document.getElementById('f-username').value.trim();
+    const password = document.getElementById('f-password').value;
+    const immoscoutEnabled = document.getElementById('f-immoscout').checked;
+
+    if (!name || !username) return toast('Name und Benutzername sind Pflicht', 'error');
+    if (!editId && !password) return toast('Passwort ist Pflicht', 'error');
+    if (password && password.length < 8) return toast('Mindestens 8 Zeichen', 'error');
+
+    const payload = { name, username, immoscoutEnabled };
+    if (!editId || password) payload.password = password;
+
+    const endpoint = editId ? `/api/tool-profiles/${editId}` : '/api/tool-profiles';
+    const method = editId ? 'PATCH' : 'POST';
+    const r = await api(method, endpoint, payload);
+    if (!r.ok) return;
+
+    closeModal();
+    await loadToolProfiles();
+    renderToolProfiles();
+    toast('Gespeichert', 'success');
+  }
+
   // ── Delete ────────────────────────────────────────────
   async function deleteItem(id, type) {
     if (!confirm('Wirklich löschen?')) return;
@@ -1152,6 +1265,14 @@
     await api('DELETE', `/api/projects/${id}`);
     await loadProjects();
     renderProjects();
+    toast('Gelöscht', 'success');
+  }
+
+  async function deleteToolProfile(id) {
+    if (!confirm('Tool-Profil wirklich löschen?')) return;
+    await api('DELETE', `/api/tool-profiles/${id}`);
+    await loadToolProfiles();
+    renderToolProfiles();
     toast('Gelöscht', 'success');
   }
 
@@ -1218,6 +1339,18 @@
     el.className = `toast ${type} show`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    try {
+      return new Intl.DateTimeFormat('de-DE', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
   }
 
   // ── Escape HTML ───────────────────────────────────────
